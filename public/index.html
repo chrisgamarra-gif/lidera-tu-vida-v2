@@ -145,6 +145,13 @@
   }
   .chip button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:14px;line-height:1;padding:0;}
   .chip button:hover{color:var(--red);}
+  .estado-btn{
+    border:none; border-radius:100px; padding:2px 8px; font-size:10.5px; font-weight:700; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.02em;
+  }
+  .estado-btn.activa{background:rgba(178,59,50,.14); color:var(--red);}
+  .estado-btn.en_progreso{background:rgba(224,175,59,.20); color:var(--gold-deep);}
+  .estado-btn.superada{background:rgba(46,125,91,.16); color:var(--sage);}
   .inlineadd{display:flex; gap:6px; margin-top:8px;}
   .inlineadd input{flex:1;}
 
@@ -295,6 +302,7 @@ async function render(){
     <nav class="tabs">
       ${navBtn('dashboard','Panel')}
       ${navBtn('compromiso','Compromiso')}
+      ${navBtn('diagnostico','Diagnóstico')}
       ${navBtn('foda','FODA')}
       ${navBtn('areas','Áreas de vida')}
       ${navBtn('planificador','Planificador diario')}
@@ -314,6 +322,7 @@ function renderCurrentView(){
   switch(STATE.view){
     case 'dashboard': return renderDashboard();
     case 'compromiso': return renderCompromiso();
+    case 'diagnostico': return renderDiagnostico();
     case 'foda': return renderFoda();
     case 'areas': return STATE.areaOpen ? renderAreaDetail(STATE.areaOpen) : renderAreasList();
     case 'planificador': return renderPlanificador();
@@ -326,7 +335,6 @@ function renderCurrentView(){
 
 /* ============================= AUTH ============================= */
 function renderAuth(){
-  const mode = STATE.authMode;
   return `
   <div class="authwrap">
     <div class="brandbar auth-variant" style="justify-content:center;">
@@ -335,43 +343,19 @@ function renderAuth(){
     <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 20px;">Plan de Crecimiento Personal · Lidera tu Vida</p>
     <div class="card">
       <div class="quote">"La única garantía de que el mañana será mejor, es que hoy puedes crecer." — John C. Maxwell</div>
-      <div class="toggler">
-        <button data-m="login" class="${mode==='login'?'active':''}">Ya tengo acceso</button>
-        <button data-m="register" class="${mode==='register'?'active':''}">Crear mi acceso</button>
-      </div>
-      ${mode==='login' ? `
-        <div class="field"><label>Usuario</label><input type="text" id="in-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
-        <div class="field"><label>Clave</label><input type="password" id="in-pin" placeholder="tu clave" autocomplete="current-password"></div>
-        <button class="btn" id="btn-login" style="width:100%; justify-content:center;">Entrar a mi plan</button>
-      ` : `
-        <div class="field"><label>Tu nombre</label><input type="text" id="reg-nombre" placeholder="ej. María Gómez"></div>
-        <div class="field"><label>Tu correo</label><input type="text" id="reg-email" placeholder="ej. maria@correo.com" autocomplete="email"></div>
-        <div class="field"><label>Elige un usuario</label><input type="text" id="reg-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
-        <div class="field"><label>Crea una clave</label><input type="password" id="reg-pin" placeholder="mínimo 8 caracteres" autocomplete="new-password"></div>
-        <div class="field">
-          <label>Tu rol</label>
-          <select id="reg-rol">
-            <option value="mentee">Participante — voy a construir mi plan</option>
-            <option value="mentor">Mentor — quiero ver el avance de mi grupo</option>
-          </select>
-        </div>
-        <button class="btn" id="btn-register" style="width:100%; justify-content:center;">Crear mi acceso y comenzar</button>
-      `}
+      <div class="field"><label>Usuario</label><input type="text" id="in-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
+      <div class="field"><label>Clave</label><input type="password" id="in-pin" placeholder="tu clave" autocomplete="current-password"></div>
+      <button class="btn" id="btn-login" style="width:100%; justify-content:center;">Entrar a mi plan</button>
       ${STATE.err ? `<div class="errbox">${esc(STATE.err)}</div>` : ''}
       ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
-      <div class="noteline">Tu clave se guarda con hash bcrypt en el servidor y nunca se almacena en texto plano. La sesión usa un token firmado (JWT) que expira automáticamente. Usa este acceso solo sobre HTTPS en producción.</div>
+      <div class="noteline">El acceso a esta app lo otorga tu mentor. Si todavía no tienes usuario y clave, pídeselos directamente a tu mentor.</div>
     </div>
   </div>`;
 }
 
 function attachAuthEvents(){
-  document.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click', ()=>{
-    STATE.authMode = b.dataset.m; STATE.err=''; render();
-  }));
   const loginBtn = document.getElementById('btn-login');
   if(loginBtn) loginBtn.addEventListener('click', doLogin);
-  const regBtn = document.getElementById('btn-register');
-  if(regBtn) regBtn.addEventListener('click', doRegister);
 }
 
 async function doLogin(){
@@ -380,19 +364,6 @@ async function doLogin(){
   if(!username || !password){ STATE.err='Ingresa tu usuario y tu clave.'; render(); return; }
   try{
     const { token, user } = await api('/auth/login', { method:'POST', body:{ username, password } });
-    setSession(token, user);
-    await enterApp(user);
-  }catch(e){ STATE.err = e.message; render(); }
-}
-
-async function doRegister(){
-  const nombre = document.getElementById('reg-nombre').value.trim();
-  const email = document.getElementById('reg-email').value.trim().toLowerCase();
-  const username = document.getElementById('reg-user').value.trim().toLowerCase();
-  const password = document.getElementById('reg-pin').value;
-  const rol = document.getElementById('reg-rol').value;
-  try{
-    const { token, user } = await api('/auth/register', { method:'POST', body:{ nombre, email, username, password, rol } });
     setSession(token, user);
     await enterApp(user);
   }catch(e){ STATE.err = e.message; render(); }
@@ -466,7 +437,7 @@ function renderDashboard(){
   <div class="grid2">
     <div class="card">
       <h2 style="font-size:17px;">Tu compromiso</h2>
-      <p class="lede" style="margin-bottom:10px;">${u.compromiso.declaracion ? esc(u.compromiso.declaracion) : 'Aún no has declarado tu compromiso de crecer intencionalmente.'}</p>
+      <p class="lede" style="margin-bottom:10px;">${u.compromisos.length ? esc(u.compromisos[u.compromisos.length-1].declaracion) : 'Aún no has declarado tu compromiso de crecer intencionalmente.'}</p>
       <button class="btn secondary small" data-v="compromiso">Ir a compromiso</button>
     </div>
     <div class="card">
@@ -505,8 +476,9 @@ function semaforoFromScoreLocal(pct){ if(pct>=0.66) return 'verde'; if(pct>=0.33
 function areaSemaforoLocal(userData, areaKey){ return semaforoFromScoreLocal(computeAreaScoreLocal(userData.areas[areaKey], userData.planificador, areaKey)); }
 function stepsCompletedLocal(u){
   let n = 0;
-  if(u.compromiso.declaracion.trim().length>4) n++;
-  if(u.compromiso.publicoCon.trim().length>1) n++;
+  const ultimo = u.compromisos[u.compromisos.length-1];
+  if(ultimo && ultimo.declaracion.trim().length>4) n++;
+  if(ultimo && ultimo.publicoCon.trim().length>1) n++;
   if(u.foda.fortalezas.length || u.foda.debilidades.length || u.foda.oportunidades.length || u.foda.amenazas.length) n++;
   if(u.planificador.length>0) n++;
   if(u.bitacora.length>0) n++;
@@ -514,54 +486,154 @@ function stepsCompletedLocal(u){
   return n;
 }
 
-/* ============================= COMPROMISO ============================= */
+/* ============================= COMPROMISO (historial) ============================= */
 function renderCompromiso(){
-  const c = STATE.userData.compromiso;
+  const list = STATE.userData.compromisos;
   return `
   <div class="card">
-    <h2>Paso 1 · Comprométete a crecer intencionalmente</h2>
-    <p class="lede">El crecimiento no te sucede solo, como un jardín que nadie cultiva. Escribe tu declaración: por qué decides crecer y hacia dónde quieres ir.</p>
+    <h2>Paso 1 y 2 · Comprométete y hazlo público</h2>
+    <p class="lede">El crecimiento no te sucede solo, como un jardín que nadie cultiva. Escribe tu declaración de compromiso, con quién la compartirás y qué le dirás. Puedes renovar tu compromiso cuando quieras — cada uno queda guardado en tu historial, para que veas cómo ha evolucionado.</p>
     <div class="field">
       <label>Mi declaración de compromiso</label>
-      <textarea id="f-declaracion" rows="4" placeholder="Ej: Me comprometo a invertir una hora diaria en mi desarrollo, empezando por...">${esc(c.declaracion)}</textarea>
+      <textarea id="f-declaracion" rows="3" placeholder="Ej: Me comprometo a invertir una hora diaria en mi desarrollo, empezando por..."></textarea>
     </div>
-    <button class="btn" id="btn-save-compromiso">Guardar mi compromiso</button>
+    <div class="grid2">
+      <div class="field"><label>¿Con quién lo compartirás?</label><input type="text" id="f-publico-con" placeholder="ej. mi mentor, mi pareja, mi equipo"></div>
+      <div class="field"><label>Fecha</label><input type="text" id="f-fecha" value="${todayISO()}"></div>
+    </div>
+    <div class="field"><label>Mensaje que compartirás</label><textarea id="f-publico-msg" rows="2" placeholder="Ej: Quiero contarte que decidí..."></textarea></div>
+    <button class="btn" id="btn-save-compromiso">Guardar este compromiso</button>
     ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
   </div>
-
   <div class="card">
-    <h2>Paso 2 · Hazlo público</h2>
-    <p class="lede">Un compromiso compartido se sostiene mejor. Anota con quién lo compartirás y el mensaje que le enviarás.</p>
-    <div class="grid2">
-      <div class="field"><label>¿Con quién lo compartirás?</label><input type="text" id="f-publico-con" value="${esc(c.publicoCon)}" placeholder="ej. mi mentor, mi pareja, mi equipo"></div>
-      <div class="field"><label>Fecha</label><input type="text" id="f-fecha" value="${esc(c.fecha)}" placeholder="${todayISO()}"></div>
-    </div>
-    <div class="field"><label>Mensaje que compartirás</label><textarea id="f-publico-msg" rows="3" placeholder="Ej: Quiero contarte que decidí...">${esc(c.publicoMensaje)}</textarea></div>
-    <button class="btn" id="btn-save-publico">Guardar compromiso público</button>
+    <h2 style="font-size:17px;">Historial de compromisos</h2>
+    ${list.length===0 ? '<div class="empty"><span class="big">🌱</span>Aún no has declarado ningún compromiso.</div>' : `
+      <ul class="plain">
+        ${list.slice().reverse().map((c,ridx)=>{
+          const i = list.length-1-ridx;
+          const esActual = i === list.length-1;
+          return `<li class="rowitem" style="display:block;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <span>${esActual ? '<span class="tagpill">Actual</span>' : ''}<b>${esc(c.declaracion)}</b></span>
+              <span class="meta">${fmtDate(c.fecha)} <button class="btn secondary small" data-delcompromiso="${i}" style="margin-left:6px;">Eliminar</button></span>
+            </div>
+            ${c.publicoCon ? `<div style="margin-top:4px; font-size:12.5px; color:var(--ink-soft);">Compartido con: ${esc(c.publicoCon)}${c.publicoMensaje ? ' — "'+esc(c.publicoMensaje)+'"' : ''}</div>` : ''}
+          </li>`;
+        }).join('')}
+      </ul>
+    `}
   </div>
   `;
 }
 
 /* ============================= FODA ============================= */
+/* ============================= DIAGNOSTICO (brechas + perfil) ============================= */
+let catalogoDiagnostico = null;
+async function ensureCatalogoDiagnostico(){
+  if(catalogoDiagnostico) return;
+  catalogoDiagnostico = await api('/data/diagnostico/catalogo');
+}
+function renderDiagnostico(){
+  if(!catalogoDiagnostico){
+    ensureCatalogoDiagnostico().then(render).catch(e=>{ STATE.err = e.message; render(); });
+    return '<div class="card"><div class="empty">Cargando diagnóstico…</div></div>';
+  }
+  const { brechas, preguntas } = catalogoDiagnostico;
+  const historialBrechas = STATE.userData.brechas;
+  const historialPerfil = STATE.userData.perfilCrecimiento;
+
+  return `
+  <div class="card">
+    <h2>¿Qué brecha te tiene atascado ahora?</h2>
+    <p class="lede">El crecimiento no ocurre solo: casi siempre hay una idea o hábito concreto que nos frena antes de empezar. Elige la que más resuene contigo hoy, escribe tu reflexión y un pequeño plan de acción. Puedes repetir este diagnóstico cuando quieras — así vas viendo cómo cambia con el tiempo.</p>
+    <div class="field">
+      <label>Elige tu brecha actual</label>
+      <select id="brecha-select">
+        ${brechas.map(b=>`<option value="${b.id}">${esc(b.nombre)}</option>`).join('')}
+      </select>
+    </div>
+    <p id="brecha-hint" class="lede" style="margin-bottom:10px; font-style:italic;">${esc(brechas[0].descripcion)}</p>
+    <div class="field"><label>¿Cómo se muestra esta brecha en tu día a día?</label><textarea id="brecha-reflexion" rows="3" placeholder="Escribe con libertad..."></textarea></div>
+    <div class="field"><label>Tu plan de acción para superarla</label><textarea id="brecha-plan" rows="2" placeholder="Ej: Esta semana voy a..."></textarea></div>
+    <button class="btn" id="btn-save-brecha">Guardar diagnóstico</button>
+    ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
+  </div>
+  <div class="card">
+    <h2 style="font-size:17px;">Historial de brechas</h2>
+    ${historialBrechas.length===0 ? '<div class="empty"><span class="big">🧭</span>Aún no has hecho este diagnóstico.</div>' : `
+      <ul class="plain">
+        ${historialBrechas.slice().reverse().map((b,ridx)=>{
+          const i = historialBrechas.length-1-ridx;
+          const nombre = (brechas.find(x=>x.id===b.brecha)||{}).nombre || b.brecha;
+          return `<li class="rowitem" style="display:block;">
+            <div style="display:flex; justify-content:space-between;"><b>${esc(nombre)}</b><span class="meta">${fmtDate(b.fecha)} <button class="btn secondary small" data-delbrecha="${i}" style="margin-left:6px;">Eliminar</button></span></div>
+            ${b.reflexion ? `<div style="margin-top:4px; font-size:12.5px; color:var(--ink-soft);">${esc(b.reflexion)}</div>` : ''}
+            ${b.planAccion ? `<div style="margin-top:2px; font-size:12.5px;"><b>Plan:</b> ${esc(b.planAccion)}</div>` : ''}
+          </li>`;
+        }).join('')}
+      </ul>
+    `}
+  </div>
+
+  <div class="card">
+    <h2>Perfil: crecimiento accidental o intencional</h2>
+    <p class="lede">Responde estas ${preguntas.length} preguntas con la opción que más se parezca a ti hoy. No hay respuesta correcta — el objetivo es ver el patrón, no calificarte.</p>
+    <div id="perfil-preguntas">
+      ${preguntas.map(p=>`
+        <div class="field" style="border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:12px;">
+          <label style="margin-bottom:8px;">${esc(p.texto)}</label>
+          <label style="display:flex; align-items:center; gap:8px; font-weight:400; text-transform:none; font-size:13.5px; margin-bottom:6px; cursor:pointer;">
+            <input type="radio" name="perfil-${p.id}" value="a" style="width:auto;"> ${esc(p.a)}
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-weight:400; text-transform:none; font-size:13.5px; cursor:pointer;">
+            <input type="radio" name="perfil-${p.id}" value="b" style="width:auto;"> ${esc(p.b)}
+          </label>
+        </div>
+      `).join('')}
+    </div>
+    <button class="btn" id="btn-save-perfil">Ver mi perfil</button>
+  </div>
+  <div class="card">
+    <h2 style="font-size:17px;">Historial de tu perfil</h2>
+    ${historialPerfil.length===0 ? '<div class="empty"><span class="big">📈</span>Aún no has hecho esta autoevaluación.</div>' : `
+      <ul class="plain">
+        ${historialPerfil.slice().reverse().map((p,ridx)=>{
+          const i = historialPerfil.length-1-ridx;
+          return `<li class="rowitem">
+            <span><b>${p.puntaje}/10</b> — ${esc(p.interpretacion)}</span>
+            <span class="meta">${fmtDate(p.fecha)} <button class="btn secondary small" data-delperfil="${i}" style="margin-left:6px;">Eliminar</button></span>
+          </li>`;
+        }).join('')}
+      </ul>
+    `}
+  </div>
+  `;
+}
+
 const FODA_DEFS = {
   fortalezas:{label:'Fortalezas', cls:'f', hint:'¿Qué haces con excelencia? Reconoce lo que ya practicas bien.'},
-  debilidades:{label:'Debilidades', cls:'d', hint:'¿Qué hábito o creencia necesitas soltar, cambiar o aprender?'},
+  debilidades:{label:'Debilidades', cls:'d', hint:'¿Qué hábito o creencia necesitas soltar, cambiar o aprender? Marca su estado para ver cómo va cambiando.'},
   oportunidades:{label:'Oportunidades', cls:'o', hint:'¿Qué entorno, persona o recurso puede impulsar tu crecimiento?'},
   amenazas:{label:'Amenazas', cls:'a', hint:'¿Qué críticas, hábitos o entornos podrían frenar tu avance?'}
 };
+const ESTADO_SIGUIENTE = { activa:'en_progreso', en_progreso:'superada', superada:'activa' };
+const ESTADO_LABEL = { activa:'Activa', en_progreso:'En progreso', superada:'Superada' };
 function renderFoda(){
   const foda = STATE.userData.foda;
   return `
   <div class="card">
     <h2>Diagnóstico FODA</h2>
-    <p class="lede">Cualquiera que quiera crecer debe primero conocerse: sus fortalezas, debilidades, oportunidades y amenazas. Añade elementos en cada cuadrante.</p>
+    <p class="lede">Cualquiera que quiera crecer debe primero conocerse: sus fortalezas, debilidades, oportunidades y amenazas. Añade elementos y dale clic al estado para irlo actualizando (activa → en progreso → superada) — así queda un historial de cómo van cambiando.</p>
     <div class="foda-grid">
       ${Object.entries(FODA_DEFS).map(([key,def])=>`
         <div class="foda-box ${def.cls}">
           <h3>${def.label}</h3>
           <p style="font-size:12px; color:var(--ink-soft); margin:0 0 4px;">${def.hint}</p>
           <div class="chiprow" id="chips-${key}">
-            ${foda[key].map((item,i)=>`<span class="chip">${esc(item)}<button data-del="${key}:${i}">×</button></span>`).join('') || '<span style="font-size:12px;color:var(--ink-soft);">— vacío —</span>'}
+            ${foda[key].map((item,i)=>`<span class="chip">
+              <button class="estado-btn ${item.estado}" data-toggleestado="${key}:${i}" title="Clic para cambiar de estado">${ESTADO_LABEL[item.estado]||item.estado}</button>
+              ${esc(item.texto)}<button data-del="${key}:${i}">×</button>
+            </span>`).join('') || '<span style="font-size:12px;color:var(--ink-soft);">— vacío —</span>'}
           </div>
           <div class="inlineadd">
             <input type="text" id="add-${key}" placeholder="agregar…">
@@ -673,12 +745,40 @@ function renderPlanificador(){
 }
 
 /* ============================= BITÁCORA ============================= */
+/* ============================= BITÁCORA (con pregunta de reflexión diaria) ============================= */
+const PREGUNTAS_DIARIAS = [
+  '¿Qué aprendiste hoy que no sabías ayer?',
+  '¿En qué momento de hoy elegiste crecer en vez de quedarte cómodo?',
+  '¿Qué harías diferente si repitieras el día de hoy?',
+  '¿A quién le enseñaste algo hoy, aunque fuera sin darte cuenta?',
+  '¿Qué error de hoy puede convertirse en una lección?',
+  '¿Qué tan intencional fue tu día, del 1 al 10? ¿Por qué?',
+  '¿Qué conversación de hoy te hizo pensar distinto?',
+  '¿Qué hiciste hoy fuera de tu zona de comodidad?',
+  '¿Qué hábito pequeño de hoy vale la pena repetir mañana?',
+  '¿Qué necesitas soltar para seguir creciendo?',
+  '¿Con quién compartiste tu progreso hoy?',
+  '¿Qué te generó más energía hoy, y qué te la quitó?',
+  '¿Qué decisión de hoy fue la más intencional?',
+  '¿Qué te enseñó una dificultad reciente?',
+  '¿Qué tan cerca te sientes hoy de la persona que quieres llegar a ser?',
+  '¿Qué libro, conversación o experiencia te está ayudando a crecer esta semana?',
+  '¿Qué necesitas empezar a hacer, aunque no te sientas listo todavía?',
+  '¿Qué patrón tuyo notaste hoy — bueno o malo — que quieres tener presente?',
+  '¿Qué tan consciente fuiste hoy de tus propias fortalezas y debilidades?',
+  '¿Qué le dirías hoy a la versión de ti de hace un año?'
+];
+function preguntaDelDia(){
+  const dia = Math.floor(Date.now() / 86400000);
+  return PREGUNTAS_DIARIAS[dia % PREGUNTAS_DIARIAS.length];
+}
 function renderBitacora(){
   const list = STATE.userData.bitacora;
   return `
   <div class="card">
     <h2>Bitácora de reflexión</h2>
     <p class="lede">La reflexión convierte la experiencia en aprendizaje. Detente unos minutos y anota lo que estás descubriendo.</p>
+    <div class="quote" style="font-size:14.5px; margin-bottom:16px;">Pregunta de hoy: ${esc(preguntaDelDia())}</div>
     <div class="field"><label>Fecha</label><input type="text" id="b-fecha" value="${todayISO()}"></div>
     <div class="field"><label>¿Qué aprendiste o sentiste hoy?</label><textarea id="b-texto" rows="4" placeholder="Escribe con libertad..."></textarea></div>
     <button class="btn" id="btn-add-bitacora">Guardar entrada</button>
@@ -745,6 +845,32 @@ function renderMentor(){
   const list = STATE.mentorList;
   return `
   <div class="card">
+    <h2>Agregar participante</h2>
+    <p class="lede">Solo tú, como mentor, puedes dar de alta accesos nuevos. Se genera una clave temporal que debes compartir tú mismo con la persona (no se envía por correo automáticamente).</p>
+    <div class="grid2">
+      <div class="field"><label>Nombre completo</label><input type="text" id="np-nombre" placeholder="ej. María Gómez"></div>
+      <div class="field"><label>Correo</label><input type="text" id="np-email" placeholder="ej. maria@correo.com"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Usuario</label><input type="text" id="np-user" placeholder="ej. maria.gomez"></div>
+      <div class="field">
+        <label>Rol</label>
+        <select id="np-rol">
+          <option value="mentee">Participante</option>
+          <option value="mentor">Mentor</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="btn-add-participante">Crear acceso</button>
+    ${STATE.err ? `<div class="errbox">${esc(STATE.err)}</div>` : ''}
+    ${ultimaCredencialCreada ? `<div class="okbox" style="margin-top:12px; line-height:1.6;">
+      Acceso creado. Comparte estos datos con ${esc(ultimaCredencialCreada.nombre)} (solo se muestran esta vez):<br>
+      <b>Usuario:</b> ${esc(ultimaCredencialCreada.username)}<br>
+      <b>Clave temporal:</b> ${esc(ultimaCredencialCreada.claveTemporal)}
+    </div>` : ''}
+  </div>
+
+  <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
       <div>
         <h2>Vista de mentor</h2>
@@ -754,12 +880,13 @@ function renderMentor(){
     </div>
     ${list.length===0 ? '<div class="empty"><span class="big">👥</span>Aún no hay participantes registrados.</div>' : `
       <table class="mentortable">
-        <thead><tr><th>Participante</th><th>Laboral</th><th>Personal</th><th>Familiar</th><th>Espiritual</th><th>Pasos</th></tr></thead>
+        <thead><tr><th>Participante</th><th>Laboral</th><th>Personal</th><th>Familiar</th><th>Espiritual</th><th>Debilidades</th><th>Pasos</th></tr></thead>
         <tbody>
           ${list.map(p=>`
             <tr data-openmentee="${p.username}">
               <td><b>${esc(p.nombre)}</b><br><span class="meta">${esc(p.username)}</span></td>
               ${Object.keys(AREA_META).map(k=>`<td><span class="semadot ${p.semaforos[k]}"></span></td>`).join('')}
+              <td style="font-size:12px;">${p.foda.debilidades.total===0 ? '—' : `${p.foda.debilidades.activa} activa${p.foda.debilidades.activa===1?'':'s'} · ${p.foda.debilidades.superada} superada${p.foda.debilidades.superada===1?'':'s'}`}</td>
               <td>${p.pasosCompletados}/6</td>
             </tr>
           `).join('')}
@@ -769,6 +896,7 @@ function renderMentor(){
   </div>`;
 }
 let mentorDetailCache = null;
+let ultimaCredencialCreada = null;
 function renderMentorDetailLoading(){
   if(mentorDetailCache && mentorDetailCache.username === STATE.mentorSelected){
     return renderMentorDetail(mentorDetailCache);
@@ -801,8 +929,34 @@ function renderMentorDetail(person){
   </div>
   <div class="card">
     <h2 style="font-size:16px;">Compromiso declarado</h2>
-    <p class="lede" style="margin-bottom:4px;">${u.compromiso.declaracion ? esc(u.compromiso.declaracion) : 'Sin declarar.'}</p>
-    ${u.compromiso.publicoCon ? `<p class="lede">Lo compartió con: <b>${esc(u.compromiso.publicoCon)}</b></p>` : ''}
+    ${u.compromisos.length ? (()=>{
+      const ultimo = u.compromisos[u.compromisos.length-1];
+      return `<p class="lede" style="margin-bottom:4px;">${esc(ultimo.declaracion)}</p>
+      ${ultimo.publicoCon ? `<p class="lede">Lo compartió con: <b>${esc(ultimo.publicoCon)}</b></p>` : ''}
+      ${u.compromisos.length>1 ? `<p class="meta">+ ${u.compromisos.length-1} compromiso(s) anterior(es) en su historial.</p>` : ''}`;
+    })() : '<p class="lede">Sin declarar.</p>'}
+  </div>
+  <div class="card">
+    <h2 style="font-size:16px;">Diagnóstico de intencionalidad</h2>
+    ${u.brechas.length ? (()=>{
+      const b = u.brechas[u.brechas.length-1];
+      const nombreBrecha = (catalogoDiagnostico && catalogoDiagnostico.brechas.find(x=>x.id===b.brecha)) ? catalogoDiagnostico.brechas.find(x=>x.id===b.brecha).nombre : b.brecha;
+      return `<p class="lede" style="margin-bottom:4px;"><b>Brecha actual:</b> ${esc(nombreBrecha)}</p>
+      ${b.planAccion ? `<p class="lede">Plan de acción: ${esc(b.planAccion)}</p>` : ''}`;
+    })() : '<p class="lede">Sin diagnóstico de brechas todavía.</p>'}
+    ${u.perfilCrecimiento.length ? (()=>{
+      const p = u.perfilCrecimiento[u.perfilCrecimiento.length-1];
+      return `<p class="lede"><b>Perfil:</b> ${p.puntaje}/10 — ${esc(p.interpretacion)}</p>`;
+    })() : ''}
+  </div>
+  <div class="card">
+    <h2 style="font-size:16px;">FODA — estado de cada ítem</h2>
+    ${Object.entries({fortalezas:'Fortalezas',debilidades:'Debilidades',oportunidades:'Oportunidades',amenazas:'Amenazas'}).map(([key,label])=>`
+      <h3 style="font-size:13px; margin:10px 0 4px;">${label}</h3>
+      ${u.foda[key].length===0 ? '<p class="meta">Sin registros.</p>' : `<ul class="plain">${u.foda[key].map(item=>`
+        <li class="rowitem"><span>${esc(item.texto)}</span><span class="estado-btn ${item.estado}" style="cursor:default;">${ESTADO_LABEL[item.estado]||item.estado}</span></li>
+      `).join('')}</ul>`}
+    `).join('')}
   </div>
   <div class="card">
     <h2 style="font-size:16px;">Últimas actividades del planificador</h2>
@@ -817,42 +971,106 @@ function attachViewEvents(){
     STATE.areaOpen = el.dataset.area; setView('areas');
   }));
 
+  const brechaSelect = document.getElementById('brecha-select');
+  if(brechaSelect) brechaSelect.addEventListener('change', ()=>{
+    const b = catalogoDiagnostico.brechas.find(x=>x.id===brechaSelect.value);
+    const hint = document.getElementById('brecha-hint');
+    if(hint && b) hint.textContent = b.descripcion;
+  });
+  const bsBrecha = document.getElementById('btn-save-brecha');
+  if(bsBrecha) bsBrecha.addEventListener('click', async ()=>{
+    const brecha = document.getElementById('brecha-select').value;
+    const reflexion = document.getElementById('brecha-reflexion').value;
+    const planAccion = document.getElementById('brecha-plan').value;
+    try{
+      const res = await api('/data/brecha', { method:'POST', body:{ brecha, reflexion, planAccion } });
+      STATE.userData.brechas = res.brechas;
+      STATE.ok = 'Diagnóstico guardado.';
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  document.querySelectorAll('[data-delbrecha]').forEach(el=>el.addEventListener('click', async ()=>{
+    try{
+      const res = await api('/data/brecha/' + el.dataset.delbrecha, { method:'DELETE' });
+      STATE.userData.brechas = res.brechas;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+  const bsPerfil = document.getElementById('btn-save-perfil');
+  if(bsPerfil) bsPerfil.addEventListener('click', async ()=>{
+    const preguntas = catalogoDiagnostico.preguntas;
+    const respuestas = [];
+    for(const p of preguntas){
+      const marcado = document.querySelector(`input[name="perfil-${p.id}"]:checked`);
+      if(!marcado){ STATE.err = 'Responde todas las preguntas antes de continuar.'; render(); return; }
+      respuestas.push(marcado.value);
+    }
+    try{
+      const res = await api('/data/perfil-crecimiento', { method:'POST', body:{ respuestas } });
+      STATE.userData.perfilCrecimiento = res.perfilCrecimiento;
+      STATE.ok = '';
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  document.querySelectorAll('[data-delperfil]').forEach(el=>el.addEventListener('click', async ()=>{
+    try{
+      const res = await api('/data/perfil-crecimiento/' + el.dataset.delperfil, { method:'DELETE' });
+      STATE.userData.perfilCrecimiento = res.perfilCrecimiento;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+
   const bsc = document.getElementById('btn-save-compromiso');
   if(bsc) bsc.addEventListener('click', async ()=>{
-    STATE.userData.compromiso.declaracion = document.getElementById('f-declaracion').value;
+    const declaracion = document.getElementById('f-declaracion').value.trim();
+    if(!declaracion){ STATE.err='Escribe tu declaración de compromiso.'; render(); return; }
     try{
-      await api('/data/compromiso', { method:'PUT', body: STATE.userData.compromiso });
+      const res = await api('/data/compromiso', { method:'POST', body:{
+        declaracion,
+        fecha: document.getElementById('f-fecha').value || todayISO(),
+        publicoCon: document.getElementById('f-publico-con').value,
+        publicoMensaje: document.getElementById('f-publico-msg').value
+      }});
+      STATE.userData.compromisos = res.compromisos;
       STATE.ok='Compromiso guardado.';
     }catch(e){ STATE.err = e.message; }
     render();
   });
-  const bsp = document.getElementById('btn-save-publico');
-  if(bsp) bsp.addEventListener('click', async ()=>{
-    STATE.userData.compromiso.publicoCon = document.getElementById('f-publico-con').value;
-    STATE.userData.compromiso.fecha = document.getElementById('f-fecha').value || todayISO();
-    STATE.userData.compromiso.publicoMensaje = document.getElementById('f-publico-msg').value;
+  document.querySelectorAll('[data-delcompromiso]').forEach(el=>el.addEventListener('click', async ()=>{
     try{
-      await api('/data/compromiso', { method:'PUT', body: STATE.userData.compromiso });
-      STATE.ok='Compromiso público guardado.';
+      const res = await api('/data/compromiso/' + el.dataset.delcompromiso, { method:'DELETE' });
+      STATE.userData.compromisos = res.compromisos;
     }catch(e){ STATE.err = e.message; }
     render();
-  });
+  }));
 
   document.querySelectorAll('[data-add]').forEach(el=>el.addEventListener('click', async ()=>{
     const key = el.dataset.add;
     const input = document.getElementById('add-'+key);
-    const val = input.value.trim();
-    if(!val) return;
-    STATE.userData.foda[key].push(val);
-    try{ await api('/data/foda', { method:'PUT', body: STATE.userData.foda }); }
-    catch(e){ STATE.err = e.message; }
+    const texto = input.value.trim();
+    if(!texto) return;
+    try{
+      const res = await api('/data/foda/' + key, { method:'POST', body:{ texto } });
+      STATE.userData.foda = res.foda;
+    }catch(e){ STATE.err = e.message; }
     render();
   }));
   document.querySelectorAll('[data-del]').forEach(el=>el.addEventListener('click', async ()=>{
     const [key,idx] = el.dataset.del.split(':');
-    STATE.userData.foda[key].splice(parseInt(idx),1);
-    try{ await api('/data/foda', { method:'PUT', body: STATE.userData.foda }); }
-    catch(e){ STATE.err = e.message; }
+    try{
+      const res = await api('/data/foda/' + key + '/' + idx, { method:'DELETE' });
+      STATE.userData.foda = res.foda;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+  document.querySelectorAll('[data-toggleestado]').forEach(el=>el.addEventListener('click', async ()=>{
+    const [key,idx] = el.dataset.toggleestado.split(':');
+    const actual = STATE.userData.foda[key][parseInt(idx)].estado;
+    const siguiente = ESTADO_SIGUIENTE[actual] || 'activa';
+    try{
+      const res = await api(`/data/foda/${key}/${idx}/estado`, { method:'PUT', body:{ estado: siguiente } });
+      STATE.userData.foda = res.foda;
+    }catch(e){ STATE.err = e.message; }
     render();
   }));
 
@@ -970,6 +1188,20 @@ function attachViewEvents(){
     '/mentor/mentees/' + encodeURIComponent(STATE.mentorSelected) + '/export/pdf',
     `plan-crecimiento-${STATE.mentorSelected}.pdf`
   ));
+  const addParticipante = document.getElementById('btn-add-participante');
+  if(addParticipante) addParticipante.addEventListener('click', async ()=>{
+    const nombre = document.getElementById('np-nombre').value.trim();
+    const email = document.getElementById('np-email').value.trim();
+    const username = document.getElementById('np-user').value.trim();
+    const rol = document.getElementById('np-rol').value;
+    try{
+      const res = await api('/mentor/participantes', { method:'POST', body:{ nombre, email, username, rol } });
+      ultimaCredencialCreada = res.credenciales;
+      STATE.err = '';
+      STATE.mentorList = null; // para que la tabla se actualice con el nuevo participante
+      render();
+    }catch(e){ STATE.err = e.message; render(); }
+  });
 }
 
 /* ============================= INICIO ============================= */

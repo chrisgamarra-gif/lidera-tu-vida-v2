@@ -58,8 +58,9 @@ function allSemaforos(data) {
 
 function stepsCompleted(u) {
   let n = 0;
-  if (u.compromiso.declaracion && u.compromiso.declaracion.trim().length > 4) n++;
-  if (u.compromiso.publicoCon && u.compromiso.publicoCon.trim().length > 1) n++;
+  const ultimoCompromiso = u.compromisos[u.compromisos.length - 1];
+  if (ultimoCompromiso && ultimoCompromiso.declaracion && ultimoCompromiso.declaracion.trim().length > 4) n++;
+  if (ultimoCompromiso && ultimoCompromiso.publicoCon && ultimoCompromiso.publicoCon.trim().length > 1) n++;
   const f = u.foda;
   if (f.fortalezas.length || f.debilidades.length || f.oportunidades.length || f.amenazas.length) n++;
   if (u.planificador.length > 0) n++;
@@ -68,4 +69,26 @@ function stepsCompleted(u) {
   return n;
 }
 
-module.exports = { AREA_KEYS, computeAreaScore, semaforoFromScore, areaSemaforo, allSemaforos, stepsCompleted };
+function fodaResumen(data) {
+  const categorias = ['fortalezas', 'debilidades', 'oportunidades', 'amenazas'];
+  const resumen = {};
+  for (const cat of categorias) {
+    const conteo = { activa: 0, en_progreso: 0, superada: 0, total: 0 };
+    for (const item of data.foda[cat]) {
+      conteo.total++;
+      conteo[item.estado] = (conteo[item.estado] || 0) + 1;
+    }
+    resumen[cat] = conteo;
+  }
+  return resumen;
+}
+
+module.exports = {
+  AREA_KEYS,
+  computeAreaScore,
+  semaforoFromScore,
+  areaSemaforo,
+  allSemaforos,
+  stepsCompleted,
+  fodaResumen
+};

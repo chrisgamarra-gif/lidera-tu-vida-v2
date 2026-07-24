@@ -35,13 +35,15 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS user_data (
     user_id         INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    compromiso      TEXT NOT NULL DEFAULT '{"declaracion":"","fecha":"","publicoCon":"","publicoMensaje":""}',
+    compromisos     TEXT NOT NULL DEFAULT '[]',
     foda            TEXT NOT NULL DEFAULT '{"fortalezas":[],"debilidades":[],"oportunidades":[],"amenazas":[]}',
     areas           TEXT NOT NULL DEFAULT '{"laboral":{"meta":"","notas":"","metricas":[]},"personal":{"meta":"","notas":"","metricas":[]},"familiar":{"meta":"","notas":"","metricas":[]},"espiritual":{"meta":"","notas":"","metricas":[]}}',
     planificador    TEXT NOT NULL DEFAULT '[]',
     bitacora        TEXT NOT NULL DEFAULT '[]',
     compartir       TEXT NOT NULL DEFAULT '[]',
     last_semaforos  TEXT NOT NULL DEFAULT '{"laboral":"rojo","personal":"rojo","familiar":"rojo","espiritual":"rojo"}',
+    brechas         TEXT NOT NULL DEFAULT '[]',
+    perfil_crecimiento TEXT NOT NULL DEFAULT '[]',
     updated_at      TEXT NOT NULL
   );
 `);
@@ -59,6 +61,41 @@ ensureColumn(
   'last_semaforos',
   `TEXT NOT NULL DEFAULT '{"laboral":"rojo","personal":"rojo","familiar":"rojo","espiritual":"rojo"}'`
 );
+ensureColumn('user_data', 'compromisos', `TEXT NOT NULL DEFAULT '[]'`);
+ensureColumn('user_data', 'brechas', `TEXT NOT NULL DEFAULT '[]'`);
+ensureColumn('user_data', 'perfil_crecimiento', `TEXT NOT NULL DEFAULT '[]'`);
+
+// Migración de datos: si existe una columna vieja "compromiso" (objeto único,
+// versión anterior de la app) y la nueva "compromisos" (lista) sigue vacía,
+// convertimos ese compromiso antiguo en la primera entrada del historial para
+// no perder lo que la gente ya había escrito.
+(function migrateLegacyCompromiso() {
+  const cols = db.prepare(`PRAGMA table_info(user_data)`).all();
+  if (!cols.some(c => c.name === 'compromiso')) return; // ya no existe la columna vieja
+  const rows = db.prepare(`SELECT user_id, compromiso, compromisos FROM user_data`).all();
+  for (const row of rows) {
+    const actuales = JSON.parse(row.compromisos || '[]');
+    if (actuales.length > 0) continue; // ya migrado o ya tiene historial propio
+    try {
+      const viejo = JSON.parse(row.compromiso);
+      if (viejo && viejo.declaracion && viejo.declaracion.trim()) {
+        const entrada = {
+          declaracion: viejo.declaracion || '',
+          fecha: viejo.fecha || new Date().toISOString().slice(0, 10),
+          publicoCon: viejo.publicoCon || '',
+          publicoMensaje: viejo.publicoMensaje || '',
+          creado: new Date().toISOString()
+        };
+        db.prepare(`UPDATE user_data SET compromisos = ? WHERE user_id = ?`).run(
+          JSON.stringify([entrada]),
+          row.user_id
+        );
+      }
+    } catch (e) {
+      // si el JSON viejo estaba corrupto, simplemente lo dejamos vacío
+    }
+  }
+})();
 
 /* ---------------------------- usuarios ---------------------------- */
 
@@ -89,16 +126,23 @@ function listMentors() {
   return db.prepare(`SELECT id, username, nombre, email FROM users WHERE rol = 'mentor' ORDER BY nombre`).all();
 }
 
+function countUsers() {
+  const row = db.prepare(`SELECT COUNT(*) as n FROM users`).get();
+  return row.n;
+}
+
 /* ---------------------------- datos de crecimiento ---------------------------- */
 
 function rowToData(row) {
   return {
-    compromiso: JSON.parse(row.compromiso),
+    compromisos: JSON.parse(row.compromisos),
     foda: JSON.parse(row.foda),
     areas: JSON.parse(row.areas),
     planificador: JSON.parse(row.planificador),
     bitacora: JSON.parse(row.bitacora),
     compartir: JSON.parse(row.compartir),
+    brechas: JSON.parse(row.brechas),
+    perfilCrecimiento: JSON.parse(row.perfil_crecimiento),
     actualizado: row.updated_at
   };
 }
@@ -111,16 +155,6 @@ function getUserData(userId) {
 
 function touch(userId) {
   db.prepare(`UPDATE user_data SET updated_at = ? WHERE user_id = ?`).run(new Date().toISOString(), userId);
-}
-
-function setCompromiso(userId, compromiso) {
-  db.prepare(`UPDATE user_data SET compromiso = ? WHERE user_id = ?`).run(JSON.stringify(compromiso), userId);
-  touch(userId);
-}
-
-function setFoda(userId, foda) {
-  db.prepare(`UPDATE user_data SET foda = ? WHERE user_id = ?`).run(JSON.stringify(foda), userId);
-  touch(userId);
 }
 
 function setArea(userId, areaKey, areaValue) {
@@ -151,6 +185,41 @@ function removeFromList(userId, column, index) {
   return list;
 }
 
+/* ---------------------------- FODA con estado por ítem ---------------------------- */
+
+function addFodaItem(userId, categoria, texto) {
+  const row = db.prepare(`SELECT foda FROM user_data WHERE user_id = ?`).get(userId);
+  const foda = JSON.parse(row.foda);
+  const ahora = new Date().toISOString();
+  foda[categoria].push({ texto, estado: 'activa', historial: [{ estado: 'activa', fecha: ahora }] });
+  db.prepare(`UPDATE user_data SET foda = ? WHERE user_id = ?`).run(JSON.stringify(foda), userId);
+  touch(userId);
+  return foda;
+}
+
+function removeFodaItem(userId, categoria, index) {
+  const row = db.prepare(`SELECT foda FROM user_data WHERE user_id = ?`).get(userId);
+  const foda = JSON.parse(row.foda);
+  if (index < 0 || index >= foda[categoria].length) return foda;
+  foda[categoria].splice(index, 1);
+  db.prepare(`UPDATE user_data SET foda = ? WHERE user_id = ?`).run(JSON.stringify(foda), userId);
+  touch(userId);
+  return foda;
+}
+
+function setFodaEstado(userId, categoria, index, estado) {
+  const row = db.prepare(`SELECT foda FROM user_data WHERE user_id = ?`).get(userId);
+  const foda = JSON.parse(row.foda);
+  const item = foda[categoria][index];
+  if (!item) return foda;
+  item.estado = estado;
+  item.historial = item.historial || [];
+  item.historial.push({ estado, fecha: new Date().toISOString() });
+  db.prepare(`UPDATE user_data SET foda = ? WHERE user_id = ?`).run(JSON.stringify(foda), userId);
+  touch(userId);
+  return foda;
+}
+
 function getLastSemaforos(userId) {
   const row = db.prepare(`SELECT last_semaforos FROM user_data WHERE user_id = ?`).get(userId);
   return row ? JSON.parse(row.last_semaforos) : null;
@@ -167,12 +236,14 @@ module.exports = {
   getUserById,
   listMentees,
   listMentors,
+  countUsers,
   getUserData,
-  setCompromiso,
-  setFoda,
   setArea,
   pushToList,
   removeFromList,
+  addFodaItem,
+  removeFodaItem,
+  setFodaEstado,
   getLastSemaforos,
   setLastSemaforos
 };

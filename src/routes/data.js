@@ -5,6 +5,7 @@ const { requireAuth } = require('../auth');
 const { allSemaforos, stepsCompleted } = require('../growth');
 const { buildGrowthPlanPdf } = require('../pdf');
 const { checkSemaforoTransitions } = require('../semaforoWatcher');
+const { BRECHAS, PERFIL_PREGUNTAS, interpretarPuntaje, calcularPuntaje } = require('../diagnostico');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -40,28 +41,98 @@ router.get('/export/pdf', (req, res) => {
   doc.end();
 });
 
-/* -------- compromiso (pasos 1 y 2) -------- */
-router.put('/compromiso', (req, res) => {
-  const { declaracion, fecha, publicoCon, publicoMensaje } = req.body || {};
-  const compromiso = {
-    declaracion: String(declaracion || '').slice(0, 2000),
-    fecha: String(fecha || '').slice(0, 30),
-    publicoCon: String(publicoCon || '').slice(0, 200),
-    publicoMensaje: String(publicoMensaje || '').slice(0, 2000)
-  };
-  db.setCompromiso(currentUserId(req), compromiso);
-  res.json({ ok: true, compromiso });
+/* -------- catálogo estático del diagnóstico (brechas + preguntas del perfil) -------- */
+router.get('/diagnostico/catalogo', (req, res) => {
+  res.json({ brechas: BRECHAS, preguntas: PERFIL_PREGUNTAS });
 });
 
-/* -------- FODA (paso 3) -------- */
-const FODA_KEYS = ['fortalezas', 'debilidades', 'oportunidades', 'amenazas'];
-router.put('/foda', (req, res) => {
-  const body = req.body || {};
-  const foda = {};
-  for (const k of FODA_KEYS) {
-    foda[k] = Array.isArray(body[k]) ? body[k].map(String).slice(0, 50) : [];
+/* -------- brechas de crecimiento: cuál te tiene atascado ahora, con reflexión -------- */
+router.post('/brecha', (req, res) => {
+  const { brecha, reflexion, planAccion } = req.body || {};
+  if (!BRECHAS.some(b => b.id === brecha)) return res.status(400).json({ error: 'Brecha no válida.' });
+  const entrada = {
+    brecha,
+    reflexion: String(reflexion || '').slice(0, 2000),
+    planAccion: String(planAccion || '').slice(0, 1000),
+    fecha: new Date().toISOString().slice(0, 10)
+  };
+  const brechas = db.pushToList(currentUserId(req), 'brechas', entrada);
+  res.status(201).json({ ok: true, brechas });
+});
+router.delete('/brecha/:index', (req, res) => {
+  const brechas = db.removeFromList(currentUserId(req), 'brechas', Number(req.params.index));
+  res.json({ ok: true, brechas });
+});
+
+/* -------- perfil de crecimiento: accidental <-> intencional -------- */
+router.post('/perfil-crecimiento', (req, res) => {
+  const { respuestas } = req.body || {};
+  if (!Array.isArray(respuestas) || respuestas.length !== PERFIL_PREGUNTAS.length) {
+    return res.status(400).json({ error: 'Responde todas las preguntas del perfil.' });
   }
-  db.setFoda(currentUserId(req), foda);
+  if (!respuestas.every(r => r === 'a' || r === 'b')) {
+    return res.status(400).json({ error: 'Respuestas no válidas.' });
+  }
+  const puntaje = calcularPuntaje(respuestas);
+  const entrada = {
+    respuestas,
+    puntaje,
+    interpretacion: interpretarPuntaje(puntaje),
+    fecha: new Date().toISOString().slice(0, 10)
+  };
+  const perfilCrecimiento = db.pushToList(currentUserId(req), 'perfil_crecimiento', entrada);
+  res.status(201).json({ ok: true, perfilCrecimiento });
+});
+router.delete('/perfil-crecimiento/:index', (req, res) => {
+  const perfilCrecimiento = db.removeFromList(currentUserId(req), 'perfil_crecimiento', Number(req.params.index));
+  res.json({ ok: true, perfilCrecimiento });
+});
+
+/* -------- compromiso (pasos 1 y 2): historial de compromisos a lo largo del tiempo -------- */
+router.post('/compromiso', (req, res) => {
+  const { declaracion, fecha, publicoCon, publicoMensaje } = req.body || {};
+  if (!declaracion || !String(declaracion).trim()) {
+    return res.status(400).json({ error: 'Escribe tu declaración de compromiso.' });
+  }
+  const entrada = {
+    declaracion: String(declaracion).slice(0, 2000),
+    fecha: String(fecha || new Date().toISOString().slice(0, 10)).slice(0, 30),
+    publicoCon: String(publicoCon || '').slice(0, 200),
+    publicoMensaje: String(publicoMensaje || '').slice(0, 2000),
+    creado: new Date().toISOString()
+  };
+  const compromisos = db.pushToList(currentUserId(req), 'compromisos', entrada);
+  res.status(201).json({ ok: true, compromisos });
+});
+router.delete('/compromiso/:index', (req, res) => {
+  const compromisos = db.removeFromList(currentUserId(req), 'compromisos', Number(req.params.index));
+  res.json({ ok: true, compromisos });
+});
+
+/* -------- FODA (paso 3): cada ítem tiene un estado que evoluciona en el tiempo -------- */
+const FODA_KEYS = ['fortalezas', 'debilidades', 'oportunidades', 'amenazas'];
+const ESTADOS_VALIDOS = ['activa', 'en_progreso', 'superada'];
+
+router.post('/foda/:categoria', (req, res) => {
+  const { categoria } = req.params;
+  if (!FODA_KEYS.includes(categoria)) return res.status(400).json({ error: 'Categoría no válida.' });
+  const { texto } = req.body || {};
+  if (!texto || !String(texto).trim()) return res.status(400).json({ error: 'Escribe el texto.' });
+  const foda = db.addFodaItem(currentUserId(req), categoria, String(texto).trim().slice(0, 200));
+  res.status(201).json({ ok: true, foda });
+});
+router.delete('/foda/:categoria/:index', (req, res) => {
+  const { categoria } = req.params;
+  if (!FODA_KEYS.includes(categoria)) return res.status(400).json({ error: 'Categoría no válida.' });
+  const foda = db.removeFodaItem(currentUserId(req), categoria, Number(req.params.index));
+  res.json({ ok: true, foda });
+});
+router.put('/foda/:categoria/:index/estado', (req, res) => {
+  const { categoria } = req.params;
+  if (!FODA_KEYS.includes(categoria)) return res.status(400).json({ error: 'Categoría no válida.' });
+  const { estado } = req.body || {};
+  if (!ESTADOS_VALIDOS.includes(estado)) return res.status(400).json({ error: 'Estado no válido.' });
+  const foda = db.setFodaEstado(currentUserId(req), categoria, Number(req.params.index), estado);
   res.json({ ok: true, foda });
 });
 

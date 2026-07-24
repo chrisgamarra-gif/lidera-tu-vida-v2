@@ -146,12 +146,20 @@ Todas las rutas bajo `/api/data` y `/api/mentor` requieren el encabezado
 
 | Método | Ruta                                | Qué hace                                      |
 |--------|--------------------------------------|------------------------------------------------|
-| POST   | `/api/auth/register`                | Crea una cuenta (`nombre`, `username`, `password`, `rol`) |
+| POST   | `/api/auth/register`                | Crea el primer acceso (mentor). Se cierra automáticamente en cuanto ya existe un mentor |
 | POST   | `/api/auth/login`                   | Inicia sesión, devuelve el token                |
 | GET    | `/api/data`                          | Trae todo tu plan + semáforos                   |
 | GET    | `/api/data/export/pdf`               | Descarga tu plan completo en PDF con la identidad de Gamarra Leadership |
-| PUT    | `/api/data/compromiso`               | Guarda el compromiso (pasos 1 y 2)              |
-| PUT    | `/api/data/foda`                     | Guarda el diagnóstico FODA                      |
+| POST   | `/api/data/compromiso`               | Agrega un compromiso al historial (pasos 1 y 2) |
+| DELETE | `/api/data/compromiso/:index`        | Elimina una entrada del historial de compromisos |
+| GET    | `/api/data/diagnostico/catalogo`     | Catálogo de las 8 brechas y las preguntas del perfil de intencionalidad |
+| POST   | `/api/data/brecha`                    | Guarda cuál brecha te tiene atascado + reflexión + plan de acción |
+| DELETE | `/api/data/brecha/:index`             | Elimina una entrada del historial de brechas    |
+| POST   | `/api/data/perfil-crecimiento`        | Guarda una autoevaluación accidental vs. intencional |
+| DELETE | `/api/data/perfil-crecimiento/:index` | Elimina una entrada del historial del perfil    |
+| POST   | `/api/data/foda/:categoria`          | Agrega un ítem (fortaleza/debilidad/oportunidad/amenaza) |
+| DELETE | `/api/data/foda/:categoria/:index`   | Elimina un ítem del FODA                        |
+| PUT    | `/api/data/foda/:categoria/:index/estado` | Cambia el estado de un ítem (activa/en_progreso/superada) |
 | PUT    | `/api/data/areas/:area`              | Guarda meta, notas y métricas de un área        |
 | POST   | `/api/data/planificador`             | Agrega una actividad diaria                     |
 | DELETE | `/api/data/planificador/:index`      | Elimina una actividad                           |
@@ -160,9 +168,46 @@ Todas las rutas bajo `/api/data` y `/api/mentor` requieren el encabezado
 | POST   | `/api/data/compartir`                | Agrega un registro de acompañamiento            |
 | DELETE | `/api/data/compartir/:index`         | Elimina un registro                             |
 | GET    | `/api/mentor/mentees`                | Lista a todos los participantes con su semáforo (solo mentores) |
+| POST   | `/api/mentor/participantes`          | Crea el acceso de un nuevo participante o mentor, devuelve una clave temporal (solo mentores) |
 | GET    | `/api/mentor/mentees/export/pdf`     | Descarga un PDF consolidado con el avance de todo el grupo (solo mentores) |
 | GET    | `/api/mentor/mentees/:username`      | Detalle completo de un participante (solo mentores) |
 | GET    | `/api/mentor/mentees/:username/export/pdf` | Descarga el plan en PDF de un participante (solo mentores) |
+
+## Solo el mentor da acceso al programa
+
+El registro público (`POST /api/auth/register`) solo funciona para crear el
+**primer** acceso de la cuenta, que siempre se crea como mentor. En cuanto ya
+existe un mentor, ese endpoint se cierra automáticamente (responde 403) y
+toda persona nueva debe darse de alta desde el panel de mentor, con el botón
+**"Crear acceso"** en la vista de mentor:
+
+- El mentor completa nombre, correo, usuario y rol (participante o mentor).
+- El servidor genera una **clave temporal** aleatoria y la muestra **una sola
+  vez** en pantalla — el mentor debe copiarla y compartirla directamente con
+  la persona (no se envía por correo automáticamente).
+- La contraseña se guarda con el mismo hash bcrypt que cualquier otra cuenta.
+
+## Diagnóstico de crecimiento (brechas + perfil de intencionalidad)
+
+Inspirado en la Ley de la Intencionalidad, pero escrito con redacción propia
+(no se reproduce texto de ningún libro):
+
+- **8 brechas de crecimiento** (suposición, conocimiento, tiempo, error,
+  perfección, inspiración, comparación, expectativas): el participante elige
+  cuál lo tiene atascado, escribe una reflexión y un plan de acción. Queda un
+  historial completo, así que puede repetir el diagnóstico con el tiempo y
+  ver cómo cambia.
+- **Perfil accidental vs. intencional**: un cuestionario corto de 10
+  preguntas pareadas que calcula un puntaje de 0 a 10 y lo interpreta. El
+  cálculo del puntaje siempre ocurre en el servidor (`src/diagnostico.js`),
+  nunca en el navegador.
+- **Pregunta de reflexión diaria** en la Bitácora: un banco de 20 preguntas
+  originales que rota automáticamente cada día (no se guarda como parte del
+  dato, es solo una sugerencia visual sobre el formulario).
+
+Tanto la brecha actual como el puntaje del perfil más reciente aparecen en el
+detalle de mentor y en el PDF individual del participante, para que el
+mentor pueda dar seguimiento a cómo evoluciona con el tiempo.
 
 ## Seguridad ya incluida
 

@@ -126,14 +126,53 @@ function buildGrowthPlanPdf(data, usuario) {
   });
   doc.y = startY + 34;
 
-  // ---- Compromiso ----
+  // ---- Compromiso (historial) ----
   sectionTitle(doc, 'Compromiso de crecimiento');
-  labelValue(doc, 'Declaracion', data.compromiso.declaracion);
-  labelValue(doc, 'Compartido con', data.compromiso.publicoCon);
-  labelValue(doc, 'Mensaje', data.compromiso.publicoMensaje);
+  if (!data.compromisos.length) {
+    paragraph(doc, 'Sin compromiso declarado todavia.', { color: INK_SOFT });
+  } else {
+    const ultimo = data.compromisos[data.compromisos.length - 1];
+    paragraph(doc, 'Compromiso mas reciente:', { bold: true, size: 9.5, color: INK_SOFT });
+    labelValue(doc, 'Declaracion', ultimo.declaracion);
+    labelValue(doc, 'Compartido con', ultimo.publicoCon);
+    labelValue(doc, 'Mensaje', ultimo.publicoMensaje);
+    if (data.compromisos.length > 1) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(INK_SOFT).text(`Historial (${data.compromisos.length - 1} anteriores):`);
+      data.compromisos
+        .slice(0, -1)
+        .reverse()
+        .forEach(c => {
+          doc.font('Helvetica').fontSize(9).fillColor(INK_SOFT).text(`${fmtDate(c.fecha)} - ${c.declaracion}`);
+        });
+    }
+  }
+
+  // ---- Brechas de crecimiento y perfil de intencionalidad ----
+  sectionTitle(doc, 'Diagnostico de intencionalidad');
+  const BRECHA_LABELS = {
+    suposicion: 'Suposicion', conocimiento: 'Conocimiento', tiempo: 'Tiempo', error: 'Error',
+    perfeccion: 'Perfeccion', inspiracion: 'Inspiracion', comparacion: 'Comparacion', expectativas: 'Expectativas'
+  };
+  if (data.brechas.length) {
+    const ultimaBrecha = data.brechas[data.brechas.length - 1];
+    paragraph(doc, `Brecha identificada: ${BRECHA_LABELS[ultimaBrecha.brecha] || ultimaBrecha.brecha}`, { bold: true });
+    if (ultimaBrecha.reflexion) paragraph(doc, ultimaBrecha.reflexion, { size: 9.5, color: INK_SOFT });
+    if (ultimaBrecha.planAccion) paragraph(doc, `Plan de accion: ${ultimaBrecha.planAccion}`, { size: 9.5, color: INK_SOFT });
+  } else {
+    paragraph(doc, 'Sin diagnostico de brechas todavia.', { color: INK_SOFT });
+  }
+  doc.moveDown(0.3);
+  if (data.perfilCrecimiento.length) {
+    const ultimoPerfil = data.perfilCrecimiento[data.perfilCrecimiento.length - 1];
+    paragraph(doc, `Perfil de intencionalidad: ${ultimoPerfil.puntaje}/10 - ${ultimoPerfil.interpretacion}`, {
+      size: 9.5,
+      color: INK_SOFT
+    });
+  }
 
   // ---- FODA ----
   sectionTitle(doc, 'Diagnostico FODA');
+  const ESTADO_LABEL = { activa: 'activa', en_progreso: 'en progreso', superada: 'superada' };
   const fodaPairs = [
     ['Fortalezas', data.foda.fortalezas],
     ['Debilidades', data.foda.debilidades],
@@ -146,7 +185,11 @@ function buildGrowthPlanPdf(data, usuario) {
       .font('Helvetica')
       .fontSize(10)
       .fillColor(INK)
-      .text(items.length ? items.map(i => `- ${i}`).join('\n') : '(sin registrar)');
+      .text(
+        items.length
+          ? items.map(i => `- ${i.texto} (${ESTADO_LABEL[i.estado] || i.estado})`).join('\n')
+          : '(sin registrar)'
+      );
     doc.moveDown(0.5);
   });
 
@@ -324,9 +367,10 @@ function buildConsolidatedPdf(mentees, opts = {}) {
           .text(area.meta || '(sin meta definida)');
       });
 
-      if (m.data.compromiso.declaracion) {
+      if (m.data.compromisos.length) {
+        const ultimo = m.data.compromisos[m.data.compromisos.length - 1];
         doc.moveDown(0.2);
-        doc.font('Helvetica-Oblique').fontSize(9).fillColor(INK_SOFT).text(`"${m.data.compromiso.declaracion}"`);
+        doc.font('Helvetica-Oblique').fontSize(9).fillColor(INK_SOFT).text(`"${ultimo.declaracion}"`);
       }
 
       const ultimaActividad = m.data.planificador[m.data.planificador.length - 1];

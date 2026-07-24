@@ -19,6 +19,17 @@ const USERNAME_RE = /^[a-z0-9._-]{3,40}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 router.post('/register', authLimiter, async (req, res) => {
+  // El registro público solo funciona para crear el PRIMER mentor de la
+  // cuenta (arranque inicial). En cuanto ya existe un mentor, el acceso a
+  // nuevas personas se otorga exclusivamente desde el panel de mentor
+  // (POST /api/mentor/participantes), para que el mentor controle quién
+  // entra al programa.
+  if (db.listMentors().length > 0) {
+    return res.status(403).json({
+      error: 'El registro público está cerrado. Pide a tu mentor que te dé de alta desde su panel.'
+    });
+  }
+
   const { nombre, username, email, password, rol } = req.body || {};
 
   if (!nombre || typeof nombre !== 'string' || nombre.trim().length < 2) {
@@ -37,20 +48,18 @@ router.post('/register', authLimiter, async (req, res) => {
   if (!password || password.length < 8) {
     return res.status(400).json({ error: 'La clave debe tener al menos 8 caracteres.' });
   }
-  if (!['mentee', 'mentor'].includes(rol)) {
-    return res.status(400).json({ error: 'El rol debe ser "mentee" o "mentor".' });
-  }
   if (db.getUserByUsername(normalizedUsername)) {
     return res.status(409).json({ error: 'Ese usuario ya existe. Elige otro o inicia sesión.' });
   }
 
+  // El primer registro siempre se crea como mentor (es quien va a administrar el programa).
   const passwordHash = await bcrypt.hash(password, 12);
   const user = db.createUser({
     username: normalizedUsername,
     nombre: nombre.trim(),
     email: normalizedEmail,
     passwordHash,
-    rol
+    rol: 'mentor'
   });
   const token = signToken(user);
   res.status(201).json({ token, user: { username: user.username, nombre: user.nombre, rol: user.rol } });

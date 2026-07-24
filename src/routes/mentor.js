@@ -1,12 +1,65 @@
 'use strict';
 const express = require('express');
+const crypto = require('node:crypto');
+const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { requireAuth, requireMentor } = require('../auth');
-const { allSemaforos, stepsCompleted } = require('../growth');
+const { allSemaforos, stepsCompleted, fodaResumen } = require('../growth');
 const { buildGrowthPlanPdf, buildConsolidatedPdf } = require('../pdf');
 
 const router = express.Router();
 router.use(requireAuth, requireMentor);
+
+const USERNAME_RE = /^[a-z0-9._-]{3,40}$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Genera una clave temporal fácil de dictar/copiar (evita caracteres ambiguos como 0/O, 1/l).
+function generarClaveTemporal() {
+  const alfabeto = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let clave = '';
+  for (let i = 0; i < 10; i++) clave += alfabeto[crypto.randomInt(alfabeto.length)];
+  return clave;
+}
+
+// Crear un nuevo acceso (participante o mentor) — solo el mentor puede hacerlo.
+router.post('/participantes', async (req, res) => {
+  const { nombre, email, username, rol } = req.body || {};
+
+  if (!nombre || typeof nombre !== 'string' || nombre.trim().length < 2) {
+    return res.status(400).json({ error: 'Escribe el nombre completo de la persona.' });
+  }
+  const normalizedUsername = (username || '').trim().toLowerCase();
+  if (!USERNAME_RE.test(normalizedUsername)) {
+    return res.status(400).json({
+      error: 'El usuario debe tener entre 3 y 40 caracteres: minúsculas, números, puntos, guiones.'
+    });
+  }
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  if (!EMAIL_RE.test(normalizedEmail)) {
+    return res.status(400).json({ error: 'Escribe un correo válido.' });
+  }
+  const rolFinal = rol === 'mentor' ? 'mentor' : 'mentee';
+  if (db.getUserByUsername(normalizedUsername)) {
+    return res.status(409).json({ error: 'Ese usuario ya existe. Elige otro.' });
+  }
+
+  const claveTemporal = generarClaveTemporal();
+  const passwordHash = await bcrypt.hash(claveTemporal, 12);
+  const user = db.createUser({
+    username: normalizedUsername,
+    nombre: nombre.trim(),
+    email: normalizedEmail,
+    passwordHash,
+    rol: rolFinal
+  });
+
+  // La clave temporal se devuelve UNA sola vez, en esta respuesta — el
+  // servidor nunca la guarda en texto plano ni la vuelve a mostrar después.
+  res.status(201).json({
+    ok: true,
+    credenciales: { username: user.username, nombre: user.nombre, rol: user.rol, claveTemporal }
+  });
+});
 
 router.get('/mentees', (req, res) => {
   const mentees = db.listMentees().map(m => {
@@ -15,7 +68,8 @@ router.get('/mentees', (req, res) => {
       username: m.username,
       nombre: m.nombre,
       semaforos: allSemaforos(data),
-      pasosCompletados: stepsCompleted(data)
+      pasosCompletados: stepsCompleted(data),
+      foda: fodaResumen(data)
     };
   });
   res.json({ mentees });
@@ -47,7 +101,8 @@ router.get('/mentees/:username', (req, res) => {
     nombre: user.nombre,
     data,
     semaforos: allSemaforos(data),
-    pasosCompletados: stepsCompleted(data)
+    pasosCompletados: stepsCompleted(data),
+    foda: fodaResumen(data)
   });
 });
 
