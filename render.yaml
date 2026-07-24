@@ -1,0 +1,29 @@
+# Blueprint de Render (render.yaml)
+# Con esto, Render puede crear el servicio automáticamente con un clic desde
+# "New +" -> "Blueprint", sin que tengas que configurar nada manualmente.
+#
+# IMPORTANTE sobre persistencia de datos:
+# El plan FREE de Render no conserva archivos en disco entre reinicios o
+# nuevos despliegues (tu base de datos SQLite se borraría). Para que tus
+# datos sean permanentes, sube el plan a "starter" (o superior) y descomenta
+# el bloque "disk" de abajo (cuesta centavos por GB al mes).
+
+services:
+  - type: web
+    name: lidera-tu-vida
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: NODE_VERSION
+        value: 22.12.0
+    # disk:
+    #   name: ltv-data
+    #   mountPath: /opt/render/project/src/data
+    #   sizeGB: 1

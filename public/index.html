@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lidera tu Vida · Plan de Crecimiento Personal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#101B2C;
+    --ink-soft:#4C5A70;
+    --paper:#F3F5F9;
+    --paper-raised:#FFFFFF;
+    --line:#D9E0EA;
+    --navy-deep:#070D18;
+    --navy:#0F2750;
+    --gold:#E0AF3B;
+    --gold-deep:#B98A24;
+    --clay:#B5573F;
+    --sage:#2E7D5B;
+    --amber:#E0AF3B;
+    --red:#B23B32;
+    --green:#2E7D5B;
+    --shadow: 0 1px 2px rgba(7,13,24,.06), 0 8px 24px -12px rgba(7,13,24,.22);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Public Sans', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--gold); color:var(--paper-raised);}
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace; letter-spacing:.02em;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+  #app{max-width:960px; margin:0 auto; padding:22px 20px 80px;}
+
+  .brandbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px calc(50vw - 50%); margin:-22px calc(-50vw + 50%) 26px;
+    background:var(--navy-deep);
+    background-image: radial-gradient(ellipse at 15% -40%, rgba(224,175,59,.10), transparent 55%);
+  }
+  .brandbar.auth-variant{ margin:0 auto; padding:0 0 16px; background:none; }
+  .brandmark{display:flex; align-items:center; gap:12px;}
+  .brandmark img.logomark{ height:38px; width:auto; display:block; }
+  .whoami{font-size:13px; color:#C7D0DE; text-align:right;}
+  .whoami b{color:var(--paper-raised); font-weight:600;}
+  .logoutlink{font-size:12px; text-decoration:underline; color:#9FADC2; cursor:pointer; background:none; border:none; padding:0; margin-top:3px;}
+  .logoutlink:hover{color:var(--gold);}
+
+  nav.tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:26px;}
+  nav.tabs button{
+    border:1px solid var(--line); background:var(--paper-raised); color:var(--ink-soft);
+    padding:8px 14px; border-radius:100px; font-size:13px; font-weight:600; cursor:pointer;
+    transition:all .15s ease;
+  }
+  nav.tabs button:hover{border-color:var(--gold-deep); color:var(--ink);}
+  nav.tabs button.active{background:var(--navy); color:var(--paper-raised); border-color:var(--navy);}
+  nav.tabs button.mentorbtn{border-style:dashed;}
+
+  .card{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:14px;
+    padding:24px; box-shadow:var(--shadow); margin-bottom:18px;
+  }
+  .card + .card{margin-top:18px;}
+  .card h2{font-size:22px; margin-bottom:4px;}
+  .card .lede{color:var(--ink-soft); font-size:14px; margin-bottom:18px; max-width:60ch; line-height:1.5;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:640px){.grid2{grid-template-columns:1fr;}}
+  label{display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;}
+  input[type=text], input[type=password], input[type=number], textarea, select{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+    background:var(--paper); font-family:'Public Sans', sans-serif; font-size:14.5px; color:var(--ink);
+  }
+  textarea{resize:vertical; min-height:70px;}
+  input:focus, textarea:focus, select:focus{outline:2px solid var(--gold); outline-offset:1px; border-color:var(--gold);}
+  .field{margin-bottom:14px;}
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:9px; border:none;
+    background:var(--navy); color:var(--paper-raised); font-weight:700; font-size:14px; cursor:pointer;
+    transition:transform .1s ease, background .15s ease;
+  }
+  .btn:hover{background:var(--gold-deep);}
+  .btn:active{transform:scale(.98);}
+  .btn.secondary{background:transparent; color:var(--navy); border:1.5px solid var(--navy);}
+  .btn.secondary:hover{background:var(--navy); color:var(--paper-raised);}
+  .btn.small{padding:7px 13px; font-size:12.5px; border-radius:7px;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+
+  .semadot{width:11px; height:11px; border-radius:50%; display:inline-block; flex-shrink:0;}
+  .semadot.rojo{background:var(--red); box-shadow:0 0 0 3px rgba(178,59,50,.15);}
+  .semadot.amarillo{background:var(--amber); box-shadow:0 0 0 3px rgba(217,164,65,.18);}
+  .semadot.verde{background:var(--green); box-shadow:0 0 0 3px rgba(63,122,74,.18);}
+  .semarow{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft); font-weight:600;}
+
+  .arealist{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
+  @media (max-width:760px){.arealist{grid-template-columns:1fr 1fr;}}
+  .areacard{
+    border:1px solid var(--line); border-radius:12px; padding:16px; background:var(--paper);
+    cursor:pointer; transition:border-color .15s ease, transform .1s ease;
+  }
+  .areacard:hover{border-color:var(--gold-deep); transform:translateY(-2px);}
+  .areacard .icon{font-size:20px; margin-bottom:6px; display:block;}
+  .areacard .label{font-weight:700; font-size:14px; margin-bottom:8px;}
+  .areacard .metapreview{font-size:12px; color:var(--ink-soft); line-height:1.4; min-height:32px;}
+
+  .stemwrap{display:flex; justify-content:center; padding:6px 0 4px;}
+  .steps-legend{display:flex; justify-content:space-between; margin-top:2px; font-size:10.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+
+  ul.plain{list-style:none; margin:0; padding:0;}
+  .rowitem{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:10px;
+    padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px;
+  }
+  .rowitem:last-child{border-bottom:none;}
+  .rowitem .meta{color:var(--ink-soft); font-size:11.5px; font-family:'IBM Plex Mono',monospace; white-space:nowrap;}
+  .tagpill{
+    display:inline-block; padding:2px 9px; border-radius:100px; font-size:11px; font-weight:700;
+    background:rgba(46,125,91,.12); color:var(--sage); margin-right:6px; text-transform:capitalize;
+  }
+  .foda-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:640px){.foda-grid{grid-template-columns:1fr;}}
+  .foda-box{border-radius:12px; padding:15px; border:1px solid var(--line);}
+  .foda-box.f{background:rgba(46,125,91,.08);}
+  .foda-box.d{background:rgba(178,59,50,.08);}
+  .foda-box.o{background:rgba(224,175,59,.12);}
+  .foda-box.a{background:rgba(16,27,44,.06);}
+  .foda-box h3{font-size:14px; margin-bottom:8px;}
+  .chiprow{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .chip{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:100px; padding:4px 10px 4px 12px;
+    font-size:12.5px; display:flex; align-items:center; gap:6px;
+  }
+  .chip button{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:14px;line-height:1;padding:0;}
+  .chip button:hover{color:var(--red);}
+  .inlineadd{display:flex; gap:6px; margin-top:8px;}
+  .inlineadd input{flex:1;}
+
+  .progressbar{height:8px; border-radius:100px; background:var(--line); overflow:hidden; margin-top:8px;}
+  .progressbar > div{height:100%; background:var(--sage); border-radius:100px; transition:width .3s ease;}
+
+  .authwrap{max-width:420px; margin:6vh auto 0;}
+  .toggler{display:flex; gap:0; margin-bottom:20px; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .toggler button{flex:1; padding:10px; background:var(--paper-raised); border:none; font-weight:700; font-size:13px; cursor:pointer; color:var(--ink-soft);}
+  .toggler button.active{background:var(--navy); color:var(--paper-raised);}
+  .noteline{font-size:11.5px; color:var(--ink-soft); line-height:1.5; margin-top:14px; padding:10px 12px; background:rgba(224,175,59,.09); border-radius:8px; border:1px dashed var(--gold-deep);}
+  .errbox{color:var(--red); font-size:13px; margin-top:8px; font-weight:600;}
+  .okbox{color:var(--sage); font-size:13px; margin-top:8px; font-weight:600;}
+
+  .quote{font-family:'Fraunces', serif; font-style:italic; font-size:17px; color:var(--ink-soft); border-left:3px solid var(--gold); padding-left:16px; margin:6px 0 20px; line-height:1.5;}
+
+  table.mentortable{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.mentortable th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); border-bottom:2px solid var(--navy); padding:8px 6px;}
+  table.mentortable td{padding:10px 6px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  table.mentortable tr:hover td{background:rgba(224,175,59,.07); cursor:pointer;}
+  .semacell{display:flex; gap:5px;}
+
+  .empty{text-align:center; padding:30px 10px; color:var(--ink-soft); font-size:13.5px;}
+  .empty .big{font-size:26px; display:block; margin-bottom:6px;}
+
+  .steprow{display:flex; gap:12px; margin-bottom:16px;}
+  .footerbar{text-align:center; margin-top:36px; font-size:11px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+  .loadingscreen{text-align:center; padding:60px 10px; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div id="app"><div class="empty">Cargando…</div></div>
+
+<script>
+const LOGO_DATA_URI = "data:image/png;base64,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";
+
+/* ============================= CLIENTE DE API ============================= */
+const API_BASE = ''; // mismo origen; cámbialo si sirves el frontend aparte de la API
+const TOKEN_KEY = 'ltv_token';
+const USER_KEY = 'ltv_user';
+
+function getToken(){ return localStorage.getItem(TOKEN_KEY); }
+function setSession(token, user){
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+function clearSession(){
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+function getStoredUser(){
+  try{ return JSON.parse(localStorage.getItem(USER_KEY)); }catch(e){ return null; }
+}
+
+async function api(path, { method='GET', body } = {}){
+  const headers = { 'Content-Type': 'application/json' };
+  const token = getToken();
+  if(token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(API_BASE + '/api' + path, {
+    method, headers, body: body !== undefined ? JSON.stringify(body) : undefined
+  });
+  let payload = null;
+  try{ payload = await res.json(); }catch(e){ /* respuesta sin cuerpo */ }
+  if(res.status === 401){
+    clearSession();
+    STATE.session = null; STATE.userData = null;
+    setView('auth', { authMode:'login', err:'Tu sesión expiró. Inicia sesión de nuevo.' });
+    throw new Error('401');
+  }
+  if(!res.ok){
+    throw new Error((payload && payload.error) || 'Ocurrió un error inesperado.');
+  }
+  return payload;
+}
+
+/* ============================= ESTADO ============================= */
+let STATE = {
+  view:'auth',
+  authMode:'login',
+  session:null,      // {username, nombre, rol}
+  userData:null,
+  mentorList:null,
+  mentorSelected:null,
+  areaOpen:null,
+  err:'', ok:''
+};
+
+const AREA_META = {
+  laboral:   { icon:'💼', label:'Laboral' },
+  personal:  { icon:'🌱', label:'Personal' },
+  familiar:  { icon:'🏡', label:'Familiar' },
+  espiritual:{ icon:'✦',  label:'Espiritual' }
+};
+
+/* ============================= HELPERS UI ============================= */
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return isNaN(d) ? iso : d.toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+function stemSVG(completed){
+  const total = 6;
+  const H = 210, W = 420;
+  const baseY = H-14, topY = 26;
+  let nodes = '';
+  let leafPaths = '';
+  for(let i=0;i<total;i++){
+    const t = i/(total-1);
+    const y = baseY - t*(baseY-topY);
+    const x = W/2 + Math.sin(i*1.15)*26;
+    const done = i < completed;
+    nodes += `<circle cx="${x}" cy="${y}" r="${done?9:6}" fill="${done?'var(--sage)':'var(--paper)'}" stroke="${done?'var(--sage)':'var(--line)'}" stroke-width="2"/>`;
+    if(done){
+      const dir = i%2===0?1:-1;
+      leafPaths += `<path d="M ${x} ${y} Q ${x+dir*30} ${y-16} ${x+dir*6} ${y-34}" stroke="var(--sage)" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.85"/>`;
+    }
+  }
+  let stem = `M ${W/2} ${baseY}`;
+  for(let i=1;i<total;i++){
+    const t=i/(total-1); const y = baseY - t*(baseY-topY); const x = W/2 + Math.sin(i*1.15)*26;
+    stem += ` L ${x} ${y}`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="max-width:440px">
+    <path d="${stem}" stroke="var(--ink-soft)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    ${leafPaths}
+    ${nodes}
+  </svg>`;
+}
+
+/* ============================= RENDER RAÍZ ============================= */
+function setView(v, extra){ STATE.view = v; STATE.err=''; STATE.ok=''; if(extra) Object.assign(STATE, extra); render(); }
+
+async function render(){
+  const app = document.getElementById('app');
+  if(STATE.view==='auth'){ app.innerHTML = renderAuth(); attachAuthEvents(); return; }
+
+  const isMentor = STATE.session.rol === 'mentor';
+  app.innerHTML = `
+    <div class="brandbar">
+      <div class="brandmark"><img class="logomark" src="${LOGO_DATA_URI}" alt="Gamarra Leadership"></div>
+      <div class="whoami">
+        Sesión de <b>${esc(STATE.session.nombre)}</b><br>
+        <button class="logoutlink" id="btn-logout">cerrar sesión</button>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin:-14px 0 18px;">
+      <button class="btn secondary small" id="btn-download-pdf">⬇ Descargar mi plan en PDF</button>
+    </div>
+    <nav class="tabs">
+      ${navBtn('dashboard','Panel')}
+      ${navBtn('compromiso','Compromiso')}
+      ${navBtn('foda','FODA')}
+      ${navBtn('areas','Áreas de vida')}
+      ${navBtn('planificador','Planificador diario')}
+      ${navBtn('bitacora','Bitácora')}
+      ${navBtn('compartir','Compartir')}
+      ${isMentor ? `<button data-v="mentor" class="mentorbtn ${STATE.view==='mentor'?'active':''}">👁 Vista de mentor</button>` : ''}
+    </nav>
+    <div id="viewport">${renderCurrentView()}</div>
+    <div class="footerbar">LIDERA TU VIDA — inspirado en las 15 Leyes del Crecimiento Personal, John C. Maxwell</div>
+  `;
+  attachGlobalEvents();
+  attachViewEvents();
+}
+function navBtn(v,label){ return `<button data-v="${v}" class="${STATE.view===v?'active':''}">${label}</button>`; }
+
+function renderCurrentView(){
+  switch(STATE.view){
+    case 'dashboard': return renderDashboard();
+    case 'compromiso': return renderCompromiso();
+    case 'foda': return renderFoda();
+    case 'areas': return STATE.areaOpen ? renderAreaDetail(STATE.areaOpen) : renderAreasList();
+    case 'planificador': return renderPlanificador();
+    case 'bitacora': return renderBitacora();
+    case 'compartir': return renderCompartir();
+    case 'mentor': return renderMentor();
+    default: return renderDashboard();
+  }
+}
+
+/* ============================= AUTH ============================= */
+function renderAuth(){
+  const mode = STATE.authMode;
+  return `
+  <div class="authwrap">
+    <div class="brandbar auth-variant" style="justify-content:center;">
+      <div class="brandmark"><img class="logomark" src="${LOGO_DATA_URI}" alt="Gamarra Leadership" style="height:52px;"></div>
+    </div>
+    <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 20px;">Plan de Crecimiento Personal · Lidera tu Vida</p>
+    <div class="card">
+      <div class="quote">"La única garantía de que el mañana será mejor, es que hoy puedes crecer." — John C. Maxwell</div>
+      <div class="toggler">
+        <button data-m="login" class="${mode==='login'?'active':''}">Ya tengo acceso</button>
+        <button data-m="register" class="${mode==='register'?'active':''}">Crear mi acceso</button>
+      </div>
+      ${mode==='login' ? `
+        <div class="field"><label>Usuario</label><input type="text" id="in-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
+        <div class="field"><label>Clave</label><input type="password" id="in-pin" placeholder="tu clave" autocomplete="current-password"></div>
+        <button class="btn" id="btn-login" style="width:100%; justify-content:center;">Entrar a mi plan</button>
+      ` : `
+        <div class="field"><label>Tu nombre</label><input type="text" id="reg-nombre" placeholder="ej. María Gómez"></div>
+        <div class="field"><label>Tu correo</label><input type="text" id="reg-email" placeholder="ej. maria@correo.com" autocomplete="email"></div>
+        <div class="field"><label>Elige un usuario</label><input type="text" id="reg-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
+        <div class="field"><label>Crea una clave</label><input type="password" id="reg-pin" placeholder="mínimo 8 caracteres" autocomplete="new-password"></div>
+        <div class="field">
+          <label>Tu rol</label>
+          <select id="reg-rol">
+            <option value="mentee">Participante — voy a construir mi plan</option>
+            <option value="mentor">Mentor — quiero ver el avance de mi grupo</option>
+          </select>
+        </div>
+        <button class="btn" id="btn-register" style="width:100%; justify-content:center;">Crear mi acceso y comenzar</button>
+      `}
+      ${STATE.err ? `<div class="errbox">${esc(STATE.err)}</div>` : ''}
+      ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
+      <div class="noteline">Tu clave se guarda con hash bcrypt en el servidor y nunca se almacena en texto plano. La sesión usa un token firmado (JWT) que expira automáticamente. Usa este acceso solo sobre HTTPS en producción.</div>
+    </div>
+  </div>`;
+}
+
+function attachAuthEvents(){
+  document.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click', ()=>{
+    STATE.authMode = b.dataset.m; STATE.err=''; render();
+  }));
+  const loginBtn = document.getElementById('btn-login');
+  if(loginBtn) loginBtn.addEventListener('click', doLogin);
+  const regBtn = document.getElementById('btn-register');
+  if(regBtn) regBtn.addEventListener('click', doRegister);
+}
+
+async function doLogin(){
+  const username = document.getElementById('in-user').value.trim().toLowerCase();
+  const password = document.getElementById('in-pin').value;
+  if(!username || !password){ STATE.err='Ingresa tu usuario y tu clave.'; render(); return; }
+  try{
+    const { token, user } = await api('/auth/login', { method:'POST', body:{ username, password } });
+    setSession(token, user);
+    await enterApp(user);
+  }catch(e){ STATE.err = e.message; render(); }
+}
+
+async function doRegister(){
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const username = document.getElementById('reg-user').value.trim().toLowerCase();
+  const password = document.getElementById('reg-pin').value;
+  const rol = document.getElementById('reg-rol').value;
+  try{
+    const { token, user } = await api('/auth/register', { method:'POST', body:{ nombre, email, username, password, rol } });
+    setSession(token, user);
+    await enterApp(user);
+  }catch(e){ STATE.err = e.message; render(); }
+}
+
+async function enterApp(user){
+  STATE.session = user;
+  const res = await api('/data');
+  STATE.userData = res.data;
+  setView('dashboard');
+}
+
+function attachGlobalEvents(){
+  document.querySelectorAll('nav.tabs [data-v]').forEach(b=>b.addEventListener('click', ()=>{
+    STATE.areaOpen=null; STATE.mentorSelected=null; setView(b.dataset.v);
+  }));
+  const lo = document.getElementById('btn-logout');
+  if(lo) lo.addEventListener('click', ()=>{
+    clearSession();
+    STATE.session=null; STATE.userData=null; STATE.mentorList=null;
+    setView('auth', {authMode:'login'});
+  });
+  const dl = document.getElementById('btn-download-pdf');
+  if(dl) dl.addEventListener('click', ()=>downloadPdf('/data/export/pdf', `plan-crecimiento-${STATE.session.username}.pdf`));
+}
+
+async function downloadPdf(path, filename){
+  try{
+    const token = getToken();
+    const res = await fetch(API_BASE + '/api' + path, { headers: { 'Authorization': 'Bearer ' + token } });
+    if(!res.ok) throw new Error('No se pudo generar el PDF.');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){ STATE.err = e.message; render(); }
+}
+
+/* ============================= DASHBOARD ============================= */
+function renderDashboard(){
+  const u = STATE.userData;
+  const done = stepsCompletedLocal(u);
+  const areas = Object.keys(AREA_META);
+  return `
+  <div class="card">
+    <h2>Tu jardín en crecimiento</h2>
+    <p class="lede">Cada paso que completas es un nudo más en tu tallo. El crecimiento personal no ocurre por accidente: es una decisión que se cultiva a diario.</p>
+    <div class="stemwrap">${stemSVG(done)}</div>
+    <div class="steps-legend"><span>Semilla</span><span>${done} de 6 pasos completados</span><span>Florece</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Semaforización por área de vida</h2>
+    <p class="lede">Verde = avance sólido · Amarillo = progreso parcial · Rojo = estancado. Se calcula en el servidor con tus metas, métricas y actividad reciente en el planificador.</p>
+    <div class="arealist">
+      ${areas.map(k=>{
+        const sema = areaSemaforoLocal(u,k);
+        const meta = u.areas[k].meta;
+        return `<div class="areacard" data-area="${k}">
+          <span class="icon">${AREA_META[k].icon}</span>
+          <div class="label">${AREA_META[k].label}</div>
+          <div class="semarow"><span class="semadot ${sema}"></span>${sema}</div>
+          <div class="metapreview">${meta ? esc(meta).slice(0,70) : 'Sin meta definida todavía.'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2 style="font-size:17px;">Tu compromiso</h2>
+      <p class="lede" style="margin-bottom:10px;">${u.compromiso.declaracion ? esc(u.compromiso.declaracion) : 'Aún no has declarado tu compromiso de crecer intencionalmente.'}</p>
+      <button class="btn secondary small" data-v="compromiso">Ir a compromiso</button>
+    </div>
+    <div class="card">
+      <h2 style="font-size:17px;">Actividad reciente</h2>
+      ${u.planificador.length===0 ? '<p class="lede" style="margin-bottom:10px;">Todavía no registras actividades en tu planificador diario.</p>' : `
+        <ul class="plain">${u.planificador.slice(-3).reverse().map(p=>`
+          <li class="rowitem"><span>${AREA_META[p.area].icon} ${esc(p.actividad)}</span><span class="meta">${fmtDate(p.fecha)}</span></li>
+        `).join('')}</ul>
+      `}
+      <button class="btn secondary small" style="margin-top:8px;" data-v="planificador">Registrar hoy</button>
+    </div>
+  </div>
+  `;
+}
+
+/* --- cálculo local solo para reflejar la UI al instante; el servidor es la fuente de verdad --- */
+function computeAreaScoreLocal(area, planificador, areaKey){
+  let score = 0, max = 0;
+  max += 30; if(area.meta && area.meta.trim().length>4) score += 30;
+  if(area.metricas.length){
+    max += 40;
+    const avg = area.metricas.reduce((s,m)=>{
+      const meta = parseFloat(m.meta)||0, actual = parseFloat(m.actual)||0;
+      const pct = meta>0 ? Math.min(1, actual/meta) : 0;
+      return s+pct;
+    },0) / area.metricas.length;
+    score += avg*40;
+  } else { max += 40; }
+  max += 30;
+  const now = Date.now();
+  const reciente = planificador.filter(p => p.area===areaKey && (now - new Date(p.fecha).getTime()) <= 7*86400000);
+  score += Math.min(1, reciente.length/3) * 30;
+  return max>0 ? score/max : 0;
+}
+function semaforoFromScoreLocal(pct){ if(pct>=0.66) return 'verde'; if(pct>=0.33) return 'amarillo'; return 'rojo'; }
+function areaSemaforoLocal(userData, areaKey){ return semaforoFromScoreLocal(computeAreaScoreLocal(userData.areas[areaKey], userData.planificador, areaKey)); }
+function stepsCompletedLocal(u){
+  let n = 0;
+  if(u.compromiso.declaracion.trim().length>4) n++;
+  if(u.compromiso.publicoCon.trim().length>1) n++;
+  if(u.foda.fortalezas.length || u.foda.debilidades.length || u.foda.oportunidades.length || u.foda.amenazas.length) n++;
+  if(u.planificador.length>0) n++;
+  if(u.bitacora.length>0) n++;
+  if(u.compartir.length>0) n++;
+  return n;
+}
+
+/* ============================= COMPROMISO ============================= */
+function renderCompromiso(){
+  const c = STATE.userData.compromiso;
+  return `
+  <div class="card">
+    <h2>Paso 1 · Comprométete a crecer intencionalmente</h2>
+    <p class="lede">El crecimiento no te sucede solo, como un jardín que nadie cultiva. Escribe tu declaración: por qué decides crecer y hacia dónde quieres ir.</p>
+    <div class="field">
+      <label>Mi declaración de compromiso</label>
+      <textarea id="f-declaracion" rows="4" placeholder="Ej: Me comprometo a invertir una hora diaria en mi desarrollo, empezando por...">${esc(c.declaracion)}</textarea>
+    </div>
+    <button class="btn" id="btn-save-compromiso">Guardar mi compromiso</button>
+    ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
+  </div>
+
+  <div class="card">
+    <h2>Paso 2 · Hazlo público</h2>
+    <p class="lede">Un compromiso compartido se sostiene mejor. Anota con quién lo compartirás y el mensaje que le enviarás.</p>
+    <div class="grid2">
+      <div class="field"><label>¿Con quién lo compartirás?</label><input type="text" id="f-publico-con" value="${esc(c.publicoCon)}" placeholder="ej. mi mentor, mi pareja, mi equipo"></div>
+      <div class="field"><label>Fecha</label><input type="text" id="f-fecha" value="${esc(c.fecha)}" placeholder="${todayISO()}"></div>
+    </div>
+    <div class="field"><label>Mensaje que compartirás</label><textarea id="f-publico-msg" rows="3" placeholder="Ej: Quiero contarte que decidí...">${esc(c.publicoMensaje)}</textarea></div>
+    <button class="btn" id="btn-save-publico">Guardar compromiso público</button>
+  </div>
+  `;
+}
+
+/* ============================= FODA ============================= */
+const FODA_DEFS = {
+  fortalezas:{label:'Fortalezas', cls:'f', hint:'¿Qué haces con excelencia? Reconoce lo que ya practicas bien.'},
+  debilidades:{label:'Debilidades', cls:'d', hint:'¿Qué hábito o creencia necesitas soltar, cambiar o aprender?'},
+  oportunidades:{label:'Oportunidades', cls:'o', hint:'¿Qué entorno, persona o recurso puede impulsar tu crecimiento?'},
+  amenazas:{label:'Amenazas', cls:'a', hint:'¿Qué críticas, hábitos o entornos podrían frenar tu avance?'}
+};
+function renderFoda(){
+  const foda = STATE.userData.foda;
+  return `
+  <div class="card">
+    <h2>Diagnóstico FODA</h2>
+    <p class="lede">Cualquiera que quiera crecer debe primero conocerse: sus fortalezas, debilidades, oportunidades y amenazas. Añade elementos en cada cuadrante.</p>
+    <div class="foda-grid">
+      ${Object.entries(FODA_DEFS).map(([key,def])=>`
+        <div class="foda-box ${def.cls}">
+          <h3>${def.label}</h3>
+          <p style="font-size:12px; color:var(--ink-soft); margin:0 0 4px;">${def.hint}</p>
+          <div class="chiprow" id="chips-${key}">
+            ${foda[key].map((item,i)=>`<span class="chip">${esc(item)}<button data-del="${key}:${i}">×</button></span>`).join('') || '<span style="font-size:12px;color:var(--ink-soft);">— vacío —</span>'}
+          </div>
+          <div class="inlineadd">
+            <input type="text" id="add-${key}" placeholder="agregar…">
+            <button class="btn small" data-add="${key}">+</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+/* ============================= ÁREAS DE VIDA ============================= */
+function renderAreasList(){
+  const u = STATE.userData;
+  return `
+  <div class="card">
+    <h2>Áreas de tu vida</h2>
+    <p class="lede">Define metas y métricas de cumplimiento para las cuatro áreas: laboral, personal, familiar y espiritual. Elige un área para trabajarla en detalle.</p>
+    <div class="arealist">
+      ${Object.keys(AREA_META).map(k=>{
+        const sema = areaSemaforoLocal(u,k);
+        return `<div class="areacard" data-openarea="${k}">
+          <span class="icon">${AREA_META[k].icon}</span>
+          <div class="label">${AREA_META[k].label}</div>
+          <div class="semarow"><span class="semadot ${sema}"></span>${u.areas[k].metricas.length} métrica(s)</div>
+          <div class="metapreview">${u.areas[k].meta ? esc(u.areas[k].meta).slice(0,70) : 'Sin meta definida todavía.'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+function renderAreaDetail(key){
+  const area = STATE.userData.areas[key];
+  const meta = AREA_META[key];
+  const sema = areaSemaforoLocal(STATE.userData, key);
+  return `
+  <div class="card">
+    <button class="btn secondary small" id="btn-back-areas" style="margin-bottom:16px;">← Volver a áreas</button>
+    <h2>${meta.icon} ${meta.label}</h2>
+    <div class="semarow" style="margin:8px 0 18px;"><span class="semadot ${sema}"></span>Semáforo actual: ${sema}</div>
+
+    <div class="field">
+      <label>Meta principal para esta área</label>
+      <textarea id="f-area-meta" rows="2" placeholder="Ej: Terminar la certificación de liderazgo este semestre">${esc(area.meta)}</textarea>
+    </div>
+    <div class="field">
+      <label>Notas / brecha a cubrir</label>
+      <textarea id="f-area-notas" rows="2" placeholder="¿Qué necesitas aprender para llegar a esta meta?">${esc(area.notas)}</textarea>
+    </div>
+    <button class="btn small" id="btn-save-area-meta">Guardar meta y notas</button>
+
+    <h3 style="font-size:15px; margin:22px 0 8px;">Métricas de cumplimiento</h3>
+    <p class="lede" style="margin-bottom:10px;">Define indicadores medibles (valor actual vs. valor meta) para monitorear tu avance.</p>
+    <ul class="plain">
+      ${area.metricas.map((m,i)=>{
+        const meta_n = parseFloat(m.meta)||0, actual_n = parseFloat(m.actual)||0;
+        const pct = meta_n>0 ? Math.min(100, Math.round(actual_n/meta_n*100)) : 0;
+        return `<li class="rowitem" style="display:block;">
+          <div style="display:flex; justify-content:space-between;">
+            <span><b>${esc(m.nombre)}</b> — ${esc(m.actual)} / ${esc(m.meta)}</span>
+            <button class="btn secondary small" data-delmetric="${i}">Eliminar</button>
+          </div>
+          <div class="progressbar"><div style="width:${pct}%"></div></div>
+        </li>`;
+      }).join('') || '<li class="empty">Sin métricas todavía.</li>'}
+    </ul>
+    <div class="grid2" style="margin-top:12px;">
+      <div class="field"><label>Nombre del indicador</label><input type="text" id="metric-nombre" placeholder="ej. libros leídos"></div>
+      <div class="field"><label>Valor actual</label><input type="number" id="metric-actual" placeholder="0"></div>
+      <div class="field"><label>Valor meta</label><input type="number" id="metric-meta" placeholder="4"></div>
+    </div>
+    <button class="btn small" id="btn-add-metric">Agregar métrica</button>
+  </div>`;
+}
+
+/* ============================= PLANIFICADOR DIARIO ============================= */
+function renderPlanificador(){
+  const list = STATE.userData.planificador;
+  return `
+  <div class="card">
+    <h2>Planificador diario · una hora para crecer</h2>
+    <p class="lede">Registra la actividad de aprendizaje, lectura, práctica o mentoría que dedicaste hoy.</p>
+    <div class="grid2">
+      <div class="field"><label>Fecha</label><input type="text" id="p-fecha" value="${todayISO()}"></div>
+      <div class="field"><label>Área</label>
+        <select id="p-area">${Object.entries(AREA_META).map(([k,m])=>`<option value="${k}">${m.icon} ${m.label}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Actividad</label><input type="text" id="p-actividad" placeholder="ej. leer 20 páginas de..."></div>
+      <div class="field"><label>Minutos invertidos</label><input type="number" id="p-minutos" placeholder="60"></div>
+    </div>
+    <button class="btn" id="btn-add-plan">Registrar actividad de hoy</button>
+  </div>
+  <div class="card">
+    <h2 style="font-size:17px;">Historial</h2>
+    ${list.length===0 ? '<div class="empty"><span class="big">🌱</span>Aún no registras actividades.</div>' : `
+      <ul class="plain">
+        ${list.slice().reverse().map((p,ridx)=>{
+          const i = list.length-1-ridx;
+          return `<li class="rowitem">
+            <span><span class="tagpill">${AREA_META[p.area].label}</span>${esc(p.actividad)} <span class="meta">(${p.minutos||0} min)</span></span>
+            <span class="meta">${fmtDate(p.fecha)} <button class="btn secondary small" data-delplan="${i}" style="margin-left:6px;">Eliminar</button></span>
+          </li>`;
+        }).join('')}
+      </ul>
+    `}
+  </div>`;
+}
+
+/* ============================= BITÁCORA ============================= */
+function renderBitacora(){
+  const list = STATE.userData.bitacora;
+  return `
+  <div class="card">
+    <h2>Bitácora de reflexión</h2>
+    <p class="lede">La reflexión convierte la experiencia en aprendizaje. Detente unos minutos y anota lo que estás descubriendo.</p>
+    <div class="field"><label>Fecha</label><input type="text" id="b-fecha" value="${todayISO()}"></div>
+    <div class="field"><label>¿Qué aprendiste o sentiste hoy?</label><textarea id="b-texto" rows="4" placeholder="Escribe con libertad..."></textarea></div>
+    <button class="btn" id="btn-add-bitacora">Guardar entrada</button>
+  </div>
+  <div class="card">
+    <h2 style="font-size:17px;">Entradas anteriores</h2>
+    ${list.length===0 ? '<div class="empty"><span class="big">📔</span>Tu bitácora está vacía por ahora.</div>' : `
+      <ul class="plain">
+        ${list.slice().reverse().map((b,ridx)=>{
+          const i = list.length-1-ridx;
+          return `<li class="rowitem" style="display:block;">
+            <div style="display:flex; justify-content:space-between;"><span class="meta">${fmtDate(b.fecha)}</span><button class="btn secondary small" data-delbit="${i}">Eliminar</button></div>
+            <div style="margin-top:4px;">${esc(b.texto)}</div>
+          </li>`;
+        }).join('')}
+      </ul>
+    `}
+  </div>`;
+}
+
+/* ============================= COMPARTIR ============================= */
+function renderCompartir(){
+  const list = STATE.userData.compartir;
+  return `
+  <div class="card">
+    <h2>Comparte tu crecimiento</h2>
+    <p class="lede">Registra con quién compartiste tu avance y qué retroalimentación recibiste. Crecer acompañado sostiene el proceso.</p>
+    <div class="grid2">
+      <div class="field"><label>Fecha</label><input type="text" id="s-fecha" value="${todayISO()}"></div>
+      <div class="field"><label>Persona / mentor</label><input type="text" id="s-persona" placeholder="ej. mi mentor Juan"></div>
+    </div>
+    <div class="field"><label>¿Qué compartiste y qué te dijeron?</label><textarea id="s-mensaje" rows="3" placeholder="Compartí... y me recomendaron..."></textarea></div>
+    <button class="btn" id="btn-add-compartir">Guardar</button>
+  </div>
+  <div class="card">
+    <h2 style="font-size:17px;">Historial de acompañamiento</h2>
+    ${list.length===0 ? '<div class="empty"><span class="big">🤝</span>Todavía no registras conversaciones de acompañamiento.</div>' : `
+      <ul class="plain">
+        ${list.slice().reverse().map((s,ridx)=>{
+          const i = list.length-1-ridx;
+          return `<li class="rowitem" style="display:block;">
+            <div style="display:flex; justify-content:space-between;"><b>${esc(s.persona)}</b><span class="meta">${fmtDate(s.fecha)} <button class="btn secondary small" data-delshare="${i}" style="margin-left:6px;">Eliminar</button></span></div>
+            <div style="margin-top:4px;">${esc(s.mensaje)}</div>
+          </li>`;
+        }).join('')}
+      </ul>
+    `}
+  </div>`;
+}
+
+/* ============================= VISTA DE MENTOR ============================= */
+async function ensureMentorList(){
+  const res = await api('/mentor/mentees');
+  STATE.mentorList = res.mentees;
+}
+function renderMentor(){
+  if(!STATE.mentorList){
+    ensureMentorList().then(render).catch(e=>{ STATE.err = e.message; render(); });
+    return '<div class="card"><div class="empty">Cargando avances del grupo…</div></div>';
+  }
+  if(STATE.mentorSelected){
+    return renderMentorDetailLoading();
+  }
+  const list = STATE.mentorList;
+  return `
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h2>Vista de mentor</h2>
+        <p class="lede">Semaforización general de cada participante, calculada por el servidor. Verde = avance sólido, amarillo = progreso parcial, rojo = estancado.</p>
+      </div>
+      <button class="btn small" id="btn-download-group-pdf">⬇ Reporte consolidado (PDF)</button>
+    </div>
+    ${list.length===0 ? '<div class="empty"><span class="big">👥</span>Aún no hay participantes registrados.</div>' : `
+      <table class="mentortable">
+        <thead><tr><th>Participante</th><th>Laboral</th><th>Personal</th><th>Familiar</th><th>Espiritual</th><th>Pasos</th></tr></thead>
+        <tbody>
+          ${list.map(p=>`
+            <tr data-openmentee="${p.username}">
+              <td><b>${esc(p.nombre)}</b><br><span class="meta">${esc(p.username)}</span></td>
+              ${Object.keys(AREA_META).map(k=>`<td><span class="semadot ${p.semaforos[k]}"></span></td>`).join('')}
+              <td>${p.pasosCompletados}/6</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `}
+  </div>`;
+}
+let mentorDetailCache = null;
+function renderMentorDetailLoading(){
+  if(mentorDetailCache && mentorDetailCache.username === STATE.mentorSelected){
+    return renderMentorDetail(mentorDetailCache);
+  }
+  api('/mentor/mentees/' + encodeURIComponent(STATE.mentorSelected))
+    .then(person=>{ mentorDetailCache = person; render(); })
+    .catch(e=>{ STATE.err = e.message; STATE.mentorSelected=null; render(); });
+  return '<div class="card"><div class="empty">Cargando participante…</div></div>';
+}
+function renderMentorDetail(person){
+  const u = person.data;
+  return `
+  <div class="card">
+    <button class="btn secondary small" id="btn-back-mentor" style="margin-bottom:16px;">← Volver a la lista</button>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+      <h2>${esc(person.nombre)}</h2>
+      <button class="btn small" id="btn-download-mentee-pdf">⬇ Descargar su plan en PDF</button>
+    </div>
+    <p class="lede">Progreso de pasos: ${person.pasosCompletados}/6 · Usuario: ${esc(person.username)}</p>
+    <div class="arealist">
+      ${Object.keys(AREA_META).map(k=>{
+        return `<div class="areacard" style="cursor:default;">
+          <span class="icon">${AREA_META[k].icon}</span>
+          <div class="label">${AREA_META[k].label}</div>
+          <div class="semarow"><span class="semadot ${person.semaforos[k]}"></span>${person.semaforos[k]}</div>
+          <div class="metapreview">${u.areas[k].meta ? esc(u.areas[k].meta) : 'Sin meta definida.'}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <h2 style="font-size:16px;">Compromiso declarado</h2>
+    <p class="lede" style="margin-bottom:4px;">${u.compromiso.declaracion ? esc(u.compromiso.declaracion) : 'Sin declarar.'}</p>
+    ${u.compromiso.publicoCon ? `<p class="lede">Lo compartió con: <b>${esc(u.compromiso.publicoCon)}</b></p>` : ''}
+  </div>
+  <div class="card">
+    <h2 style="font-size:16px;">Últimas actividades del planificador</h2>
+    ${u.planificador.length===0 ? '<p class="lede">Sin registros.</p>' : `<ul class="plain">${u.planificador.slice(-5).reverse().map(p=>`<li class="rowitem"><span>${AREA_META[p.area].icon} ${esc(p.actividad)}</span><span class="meta">${fmtDate(p.fecha)}</span></li>`).join('')}</ul>`}
+  </div>
+  `;
+}
+
+/* ============================= EVENTOS POR VISTA ============================= */
+function attachViewEvents(){
+  document.querySelectorAll('[data-area]').forEach(el=>el.addEventListener('click', ()=>{
+    STATE.areaOpen = el.dataset.area; setView('areas');
+  }));
+
+  const bsc = document.getElementById('btn-save-compromiso');
+  if(bsc) bsc.addEventListener('click', async ()=>{
+    STATE.userData.compromiso.declaracion = document.getElementById('f-declaracion').value;
+    try{
+      await api('/data/compromiso', { method:'PUT', body: STATE.userData.compromiso });
+      STATE.ok='Compromiso guardado.';
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  const bsp = document.getElementById('btn-save-publico');
+  if(bsp) bsp.addEventListener('click', async ()=>{
+    STATE.userData.compromiso.publicoCon = document.getElementById('f-publico-con').value;
+    STATE.userData.compromiso.fecha = document.getElementById('f-fecha').value || todayISO();
+    STATE.userData.compromiso.publicoMensaje = document.getElementById('f-publico-msg').value;
+    try{
+      await api('/data/compromiso', { method:'PUT', body: STATE.userData.compromiso });
+      STATE.ok='Compromiso público guardado.';
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+
+  document.querySelectorAll('[data-add]').forEach(el=>el.addEventListener('click', async ()=>{
+    const key = el.dataset.add;
+    const input = document.getElementById('add-'+key);
+    const val = input.value.trim();
+    if(!val) return;
+    STATE.userData.foda[key].push(val);
+    try{ await api('/data/foda', { method:'PUT', body: STATE.userData.foda }); }
+    catch(e){ STATE.err = e.message; }
+    render();
+  }));
+  document.querySelectorAll('[data-del]').forEach(el=>el.addEventListener('click', async ()=>{
+    const [key,idx] = el.dataset.del.split(':');
+    STATE.userData.foda[key].splice(parseInt(idx),1);
+    try{ await api('/data/foda', { method:'PUT', body: STATE.userData.foda }); }
+    catch(e){ STATE.err = e.message; }
+    render();
+  }));
+
+  document.querySelectorAll('[data-openarea]').forEach(el=>el.addEventListener('click', ()=>{
+    STATE.areaOpen = el.dataset.openarea; render();
+  }));
+  const back = document.getElementById('btn-back-areas');
+  if(back) back.addEventListener('click', ()=>{ STATE.areaOpen=null; render(); });
+
+  const saveAreaMeta = document.getElementById('btn-save-area-meta');
+  if(saveAreaMeta) saveAreaMeta.addEventListener('click', async ()=>{
+    const area = STATE.userData.areas[STATE.areaOpen];
+    area.meta = document.getElementById('f-area-meta').value;
+    area.notas = document.getElementById('f-area-notas').value;
+    try{
+      const res = await api('/data/areas/' + STATE.areaOpen, { method:'PUT', body: area });
+      STATE.userData.areas = res.areas;
+      STATE.ok='Guardado.';
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  const addMetric = document.getElementById('btn-add-metric');
+  if(addMetric) addMetric.addEventListener('click', async ()=>{
+    const nombre = document.getElementById('metric-nombre').value.trim();
+    const actual = document.getElementById('metric-actual').value;
+    const meta = document.getElementById('metric-meta').value;
+    if(!nombre || !meta) return;
+    const area = STATE.userData.areas[STATE.areaOpen];
+    area.metricas.push({nombre, actual, meta});
+    try{
+      const res = await api('/data/areas/' + STATE.areaOpen, { method:'PUT', body: area });
+      STATE.userData.areas = res.areas;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  document.querySelectorAll('[data-delmetric]').forEach(el=>el.addEventListener('click', async ()=>{
+    const area = STATE.userData.areas[STATE.areaOpen];
+    area.metricas.splice(parseInt(el.dataset.delmetric),1);
+    try{
+      const res = await api('/data/areas/' + STATE.areaOpen, { method:'PUT', body: area });
+      STATE.userData.areas = res.areas;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+
+  const addPlan = document.getElementById('btn-add-plan');
+  if(addPlan) addPlan.addEventListener('click', async ()=>{
+    const actividad = document.getElementById('p-actividad').value.trim();
+    if(!actividad) return;
+    try{
+      const res = await api('/data/planificador', { method:'POST', body:{
+        fecha: document.getElementById('p-fecha').value || todayISO(),
+        area: document.getElementById('p-area').value,
+        actividad,
+        minutos: document.getElementById('p-minutos').value
+      }});
+      STATE.userData.planificador = res.planificador;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  document.querySelectorAll('[data-delplan]').forEach(el=>el.addEventListener('click', async ()=>{
+    try{
+      const res = await api('/data/planificador/' + el.dataset.delplan, { method:'DELETE' });
+      STATE.userData.planificador = res.planificador;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+
+  const addBit = document.getElementById('btn-add-bitacora');
+  if(addBit) addBit.addEventListener('click', async ()=>{
+    const texto = document.getElementById('b-texto').value.trim();
+    if(!texto) return;
+    try{
+      const res = await api('/data/bitacora', { method:'POST', body:{ fecha: document.getElementById('b-fecha').value || todayISO(), texto } });
+      STATE.userData.bitacora = res.bitacora;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  document.querySelectorAll('[data-delbit]').forEach(el=>el.addEventListener('click', async ()=>{
+    try{
+      const res = await api('/data/bitacora/' + el.dataset.delbit, { method:'DELETE' });
+      STATE.userData.bitacora = res.bitacora;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+
+  const addShare = document.getElementById('btn-add-compartir');
+  if(addShare) addShare.addEventListener('click', async ()=>{
+    const persona = document.getElementById('s-persona').value.trim();
+    const mensaje = document.getElementById('s-mensaje').value.trim();
+    if(!persona || !mensaje) return;
+    try{
+      const res = await api('/data/compartir', { method:'POST', body:{ fecha: document.getElementById('s-fecha').value || todayISO(), persona, mensaje } });
+      STATE.userData.compartir = res.compartir;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  });
+  document.querySelectorAll('[data-delshare]').forEach(el=>el.addEventListener('click', async ()=>{
+    try{
+      const res = await api('/data/compartir/' + el.dataset.delshare, { method:'DELETE' });
+      STATE.userData.compartir = res.compartir;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+
+  document.querySelectorAll('[data-openmentee]').forEach(el=>el.addEventListener('click', ()=>{
+    mentorDetailCache = null; STATE.mentorSelected = el.dataset.openmentee; render();
+  }));
+  const dlGroup = document.getElementById('btn-download-group-pdf');
+  if(dlGroup) dlGroup.addEventListener('click', ()=>downloadPdf('/mentor/mentees/export/pdf', 'reporte-grupo-lidera-tu-vida.pdf'));
+  const backMentor = document.getElementById('btn-back-mentor');
+  if(backMentor) backMentor.addEventListener('click', ()=>{ STATE.mentorSelected=null; mentorDetailCache=null; render(); });
+  const dlMentee = document.getElementById('btn-download-mentee-pdf');
+  if(dlMentee) dlMentee.addEventListener('click', ()=>downloadPdf(
+    '/mentor/mentees/' + encodeURIComponent(STATE.mentorSelected) + '/export/pdf',
+    `plan-crecimiento-${STATE.mentorSelected}.pdf`
+  ));
+}
+
+/* ============================= INICIO ============================= */
+(async function init(){
+  const token = getToken();
+  const user = getStoredUser();
+  if(token && user){
+    try{
+      STATE.session = user;
+      const res = await api('/data');
+      STATE.userData = res.data;
+      STATE.view = 'dashboard';
+    }catch(e){
+      clearSession(); STATE.session=null; STATE.view='auth';
+    }
+  }
+  render();
+})();
+</script>
+</body>
+</html>

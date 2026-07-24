@@ -1,0 +1,1 @@
+Aquí se creará automáticamente el archivo de base de datos SQLite (lidera_tu_vida.sqlite) la primera vez que arranques el servidor. No lo subas a un repositorio.

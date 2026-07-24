@@ -1,0 +1,18 @@
+services:
+  lidera-tu-vida:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      DB_PATH: /app/data/lidera_tu_vida.sqlite
+    volumes:
+      # Volumen nombrado: la base de datos sobrevive a "docker compose down" y a rebuilds.
+      - ltv_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  ltv_data:
