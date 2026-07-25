@@ -175,6 +175,14 @@ Todas las rutas bajo `/api/data` y `/api/mentor` requieren el encabezado
 
 ## Solo el mentor da acceso al programa
 
+**Arranque inicial:** si la base de datos está completamente vacía (por
+ejemplo, la primera vez que despliegas la app, o si el disco se reinició en
+un plan sin almacenamiento persistente), la pantalla de acceso muestra
+automáticamente un formulario para **crear el primer acceso**, que siempre
+queda como mentor. En cuanto ese primer mentor existe, ese formulario
+desaparece solo y la pantalla vuelve a mostrar únicamente el login — desde
+ahí, todo acceso nuevo se crea desde el panel de mentor.
+
 El registro público (`POST /api/auth/register`) solo funciona para crear el
 **primer** acceso de la cuenta, que siempre se crea como mentor. En cuanto ya
 existe un mentor, ese endpoint se cierra automáticamente (responde 403) y

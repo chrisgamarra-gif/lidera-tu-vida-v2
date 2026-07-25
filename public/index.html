@@ -215,11 +215,15 @@ async function api(path, { method='GET', body } = {}){
   });
   let payload = null;
   try{ payload = await res.json(); }catch(e){ /* respuesta sin cuerpo */ }
-  if(res.status === 401){
+  // Un 401 solo significa "tu sesión expiró" si HABÍA un token guardado y lo
+  // mandamos (es decir, esta llamada iba autenticada). Si no había token
+  // (por ejemplo, un intento de login con clave incorrecta), es un error
+  // normal con su propio mensaje, no un cierre de sesión.
+  if(res.status === 401 && token){
     clearSession();
     STATE.session = null; STATE.userData = null;
     setView('auth', { authMode:'login', err:'Tu sesión expiró. Inicia sesión de nuevo.' });
-    throw new Error('401');
+    throw new Error('SESSION_EXPIRED');
   }
   if(!res.ok){
     throw new Error((payload && payload.error) || 'Ocurrió un error inesperado.');
@@ -334,7 +338,22 @@ function renderCurrentView(){
 }
 
 /* ============================= AUTH ============================= */
+let hayMentorConocido = null;
+async function ensureEstadoAuth(){
+  if(hayMentorConocido !== null) return;
+  try{
+    const res = await fetch(API_BASE + '/api/auth/estado');
+    const data = await res.json();
+    hayMentorConocido = !!data.hayMentor;
+  }catch(e){ hayMentorConocido = true; } // si falla, asumimos que sí hay mentor (más seguro)
+}
+
 function renderAuth(){
+  if(hayMentorConocido === null){
+    ensureEstadoAuth().then(render);
+    return '<div class="empty">Cargando…</div>';
+  }
+  const mostrarBootstrap = hayMentorConocido === false;
   return `
   <div class="authwrap">
     <div class="brandbar auth-variant" style="justify-content:center;">
@@ -343,12 +362,21 @@ function renderAuth(){
     <p style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 20px;">Plan de Crecimiento Personal · Lidera tu Vida</p>
     <div class="card">
       <div class="quote">"La única garantía de que el mañana será mejor, es que hoy puedes crecer." — John C. Maxwell</div>
-      <div class="field"><label>Usuario</label><input type="text" id="in-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
-      <div class="field"><label>Clave</label><input type="password" id="in-pin" placeholder="tu clave" autocomplete="current-password"></div>
-      <button class="btn" id="btn-login" style="width:100%; justify-content:center;">Entrar a mi plan</button>
+      ${mostrarBootstrap ? `
+        <div class="noteline" style="margin-bottom:16px;">Todavía no hay ningún mentor creado en esta app. Crea aquí el primer acceso (quedará como mentor).</div>
+        <div class="field"><label>Tu nombre</label><input type="text" id="reg-nombre" placeholder="ej. María Gómez"></div>
+        <div class="field"><label>Tu correo</label><input type="text" id="reg-email" placeholder="ej. maria@correo.com" autocomplete="email"></div>
+        <div class="field"><label>Elige un usuario</label><input type="text" id="reg-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
+        <div class="field"><label>Crea una clave</label><input type="password" id="reg-pin" placeholder="mínimo 8 caracteres" autocomplete="new-password"></div>
+        <button class="btn" id="btn-register" style="width:100%; justify-content:center;">Crear el primer acceso (mentor)</button>
+      ` : `
+        <div class="field"><label>Usuario</label><input type="text" id="in-user" placeholder="ej. maria.gomez" autocomplete="username"></div>
+        <div class="field"><label>Clave</label><input type="password" id="in-pin" placeholder="tu clave" autocomplete="current-password"></div>
+        <button class="btn" id="btn-login" style="width:100%; justify-content:center;">Entrar a mi plan</button>
+      `}
       ${STATE.err ? `<div class="errbox">${esc(STATE.err)}</div>` : ''}
       ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
-      <div class="noteline">El acceso a esta app lo otorga tu mentor. Si todavía no tienes usuario y clave, pídeselos directamente a tu mentor.</div>
+      ${!mostrarBootstrap ? `<div class="noteline">El acceso a esta app lo otorga tu mentor. Si todavía no tienes usuario y clave, pídeselos directamente a tu mentor.</div>` : ''}
     </div>
   </div>`;
 }
@@ -356,6 +384,20 @@ function renderAuth(){
 function attachAuthEvents(){
   const loginBtn = document.getElementById('btn-login');
   if(loginBtn) loginBtn.addEventListener('click', doLogin);
+  const regBtn = document.getElementById('btn-register');
+  if(regBtn) regBtn.addEventListener('click', doRegister);
+}
+
+async function doRegister(){
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const username = document.getElementById('reg-user').value.trim();
+  const password = document.getElementById('reg-pin').value;
+  try{
+    const { token, user } = await api('/auth/register', { method:'POST', body:{ nombre, email, username, password } });
+    setSession(token, user);
+    await enterApp(user);
+  }catch(e){ STATE.err = e.message; render(); }
 }
 
 async function doLogin(){

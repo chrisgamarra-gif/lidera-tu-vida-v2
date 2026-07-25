@@ -18,6 +18,13 @@ const authLimiter = rateLimit({
 const USERNAME_RE = /^[a-z0-9._-]{3,40}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Endpoint público (sin auth) para que el frontend sepa si debe mostrar el
+// formulario de "crear el primer acceso" o solo el de login. No expone
+// ningún dato sensible, solo un booleano.
+router.get('/estado', (req, res) => {
+  res.json({ hayMentor: db.listMentors().length > 0 });
+});
+
 router.post('/register', authLimiter, async (req, res) => {
   // El registro público solo funciona para crear el PRIMER mentor de la
   // cuenta (arranque inicial). En cuanto ya existe un mentor, el acceso a

@@ -44,6 +44,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ORIGIN = process.env.CORS_ORIGIN || true; // true = refleja el origen (útil en desarrollo)
 
+// Render (y la mayoría de plataformas de hosting) ponen la app detrás de un
+// proxy que agrega la cabecera X-Forwarded-For con la IP real de quien
+// visita. Sin esto, Express no confía en esa cabecera y express-rate-limit
+// no puede identificar visitantes de forma correcta (y lanza un error de
+// validación en cada request). "1" = confía en un solo salto de proxy, que
+// es exactamente el caso de Render/Docker.
+app.set('trust proxy', 1);
+
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: ORIGIN }));
 app.use(express.json({ limit: '200kb' }));
