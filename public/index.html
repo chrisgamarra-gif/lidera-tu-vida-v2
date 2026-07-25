@@ -580,23 +580,35 @@ function renderDiagnostico(){
     ensureCatalogoDiagnostico().then(render).catch(e=>{ STATE.err = e.message; render(); });
     return '<div class="card"><div class="empty">Cargando diagnóstico…</div></div>';
   }
-  const { brechas, preguntas } = catalogoDiagnostico;
+  const { brechas, preguntas, conciencia, reflexionPersonal } = catalogoDiagnostico;
   const historialBrechas = STATE.userData.brechas;
   const historialPerfil = STATE.userData.perfilCrecimiento;
 
   return `
   <div class="card">
-    <h2>¿Qué brecha te tiene atascado ahora?</h2>
-    <p class="lede">El crecimiento no ocurre solo: casi siempre hay una idea o hábito concreto que nos frena antes de empezar. Elige la que más resuene contigo hoy, escribe tu reflexión y un pequeño plan de acción. Puedes repetir este diagnóstico cuando quieras — así vas viendo cómo cambia con el tiempo.</p>
-    <div class="field">
-      <label>Elige tu brecha actual</label>
-      <select id="brecha-select">
-        ${brechas.map(b=>`<option value="${b.id}">${esc(b.nombre)}</option>`).join('')}
-      </select>
-    </div>
-    <p id="brecha-hint" class="lede" style="margin-bottom:10px; font-style:italic;">${esc(brechas[0].descripcion)}</p>
-    <div class="field"><label>¿Cómo se muestra esta brecha en tu día a día?</label><textarea id="brecha-reflexion" rows="3" placeholder="Escribe con libertad..."></textarea></div>
-    <div class="field"><label>Tu plan de acción para superarla</label><textarea id="brecha-plan" rows="2" placeholder="Ej: Esta semana voy a..."></textarea></div>
+    <h2>¿Qué brechas te tienen atascado ahora?</h2>
+    <p class="lede">El crecimiento no ocurre solo: casi siempre hay ideas o hábitos concretos que nos frenan antes de empezar. Marca todas las que sientas que aplican hoy — pueden ser una, varias, o las ocho. Para cada una, anota sus causas (¿por qué pasa?) y sus efectos (¿qué provoca en tu vida?). Puedes repetir este diagnóstico cuando quieras para ver cómo cambia con el tiempo.</p>
+    ${brechas.map(b=>`
+      <div class="brecha-item" style="border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px;">
+        <label style="display:flex; align-items:flex-start; gap:9px; font-weight:400; text-transform:none; font-size:13.5px; cursor:pointer;">
+          <input type="checkbox" class="brecha-check" data-brecha="${b.id}" value="${b.id}" style="width:auto; margin-top:2px;">
+          <span><b>${esc(b.nombre)}</b><br><span style="color:var(--ink-soft); font-size:12.5px;">${esc(b.descripcion)}</span></span>
+        </label>
+        <div class="brecha-detalle" id="detalle-${b.id}" style="display:none; margin-top:10px;">
+          <div class="grid2">
+            <div class="field" style="margin-bottom:6px;">
+              <label>Causas (hasta 4, una por línea)</label>
+              <textarea id="causas-${b.id}" rows="4" placeholder="¿Por qué crees que pasa esto?"></textarea>
+            </div>
+            <div class="field" style="margin-bottom:6px;">
+              <label>Efectos (hasta 4, una por línea)</label>
+              <textarea id="efectos-${b.id}" rows="4" placeholder="¿Qué provoca en tu vida o tu plan?"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+    <div class="field"><label>Tu plan de acción general para esta ronda</label><textarea id="brecha-plan" rows="2" placeholder="Ej: Esta semana voy a..."></textarea></div>
     <button class="btn" id="btn-save-brecha">Guardar diagnóstico</button>
     ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
   </div>
@@ -606,11 +618,17 @@ function renderDiagnostico(){
       <ul class="plain">
         ${historialBrechas.slice().reverse().map((b,ridx)=>{
           const i = historialBrechas.length-1-ridx;
-          const nombre = (brechas.find(x=>x.id===b.brecha)||{}).nombre || b.brecha;
+          const detalles = b.detalles || [];
           return `<li class="rowitem" style="display:block;">
-            <div style="display:flex; justify-content:space-between;"><b>${esc(nombre)}</b><span class="meta">${fmtDate(b.fecha)} <button class="btn secondary small" data-delbrecha="${i}" style="margin-left:6px;">Eliminar</button></span></div>
-            ${b.reflexion ? `<div style="margin-top:4px; font-size:12.5px; color:var(--ink-soft);">${esc(b.reflexion)}</div>` : ''}
-            ${b.planAccion ? `<div style="margin-top:2px; font-size:12.5px;"><b>Plan:</b> ${esc(b.planAccion)}</div>` : ''}
+            <div style="display:flex; justify-content:space-between;"><b>${esc(detalles.map(d=>(brechas.find(x=>x.id===d.brecha)||{}).nombre || d.brecha).join(', '))}</b><span class="meta">${fmtDate(b.fecha)} <button class="btn secondary small" data-delbrecha="${i}" style="margin-left:6px;">Eliminar</button></span></div>
+            ${detalles.map(d=>`
+              <div style="margin-top:6px; padding-left:10px; border-left:2px solid var(--line);">
+                <b style="font-size:12.5px;">${esc((brechas.find(x=>x.id===d.brecha)||{}).nombre || d.brecha)}</b>
+                ${d.causas && d.causas.length ? `<div style="font-size:12px; color:var(--ink-soft);">Causas: ${d.causas.map(esc).join(' · ')}</div>` : ''}
+                ${d.efectos && d.efectos.length ? `<div style="font-size:12px; color:var(--ink-soft);">Efectos: ${d.efectos.map(esc).join(' · ')}</div>` : ''}
+              </div>
+            `).join('')}
+            ${b.planAccion ? `<div style="margin-top:6px; font-size:12.5px;"><b>Plan:</b> ${esc(b.planAccion)}</div>` : ''}
           </li>`;
         }).join('')}
       </ul>
@@ -649,7 +667,32 @@ function renderDiagnostico(){
       </ul>
     `}
   </div>
+
+  ${renderAutoconocimiento('conciencia', 'Ley de la Conciencia', 'Saber quién eres, qué quieres y hacia dónde vas.', conciencia, STATE.userData.conciencia)}
+  ${renderAutoconocimiento('reflexion-personal', 'Ley de la Reflexión', 'Detente a pensar en ti mismo: tus hábitos, tus emociones, lo que valoras.', reflexionPersonal, STATE.userData.reflexionPersonal)}
   `;
+}
+
+function renderAutoconocimiento(rutaBase, titulo, lede, preguntas, respuestasGuardadas){
+  return `
+  <div class="card">
+    <h2>${esc(titulo)}</h2>
+    <p class="lede">${esc(lede)}</p>
+    ${preguntas.map(p=>{
+      const respuestas = respuestasGuardadas[p.id] || [];
+      return `
+      <div style="border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:14px;">
+        <label style="margin-bottom:8px;">${esc(p.texto)}</label>
+        ${respuestas.length ? `<ul class="plain" style="margin-bottom:8px;">
+          ${respuestas.map((r,i)=>`<li class="rowitem"><span>${esc(r.texto)}</span><span class="meta">${fmtDate(r.fecha)} <button class="btn secondary small" data-delauto="${rutaBase}:${p.id}:${i}" style="margin-left:6px;">Eliminar</button></span></li>`).join('')}
+        </ul>` : ''}
+        <div class="inlineadd">
+          <input type="text" id="auto-${rutaBase}-${p.id}" placeholder="Escribe tu respuesta…">
+          <button class="btn small" data-addauto="${rutaBase}:${p.id}">+</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 const FODA_DEFS = {
@@ -982,8 +1025,19 @@ function renderMentorDetail(person){
     <h2 style="font-size:16px;">Diagnóstico de intencionalidad</h2>
     ${u.brechas.length ? (()=>{
       const b = u.brechas[u.brechas.length-1];
-      const nombreBrecha = (catalogoDiagnostico && catalogoDiagnostico.brechas.find(x=>x.id===b.brecha)) ? catalogoDiagnostico.brechas.find(x=>x.id===b.brecha).nombre : b.brecha;
-      return `<p class="lede" style="margin-bottom:4px;"><b>Brecha actual:</b> ${esc(nombreBrecha)}</p>
+      const detalles = b.detalles || [];
+      const nombrar = id => {
+        const encontrada = catalogoDiagnostico && catalogoDiagnostico.brechas.find(x=>x.id===id);
+        return encontrada ? encontrada.nombre : id;
+      };
+      return `<p class="lede" style="margin-bottom:4px;"><b>Brechas actuales:</b> ${esc(detalles.map(d=>nombrar(d.brecha)).join(', '))}</p>
+      ${detalles.map(d=>`
+        <div style="margin:4px 0 4px 10px; padding-left:8px; border-left:2px solid var(--line);">
+          <b style="font-size:12.5px;">${esc(nombrar(d.brecha))}</b>
+          ${d.causas && d.causas.length ? `<div class="meta">Causas: ${d.causas.map(esc).join(' · ')}</div>` : ''}
+          ${d.efectos && d.efectos.length ? `<div class="meta">Efectos: ${d.efectos.map(esc).join(' · ')}</div>` : ''}
+        </div>
+      `).join('')}
       ${b.planAccion ? `<p class="lede">Plan de acción: ${esc(b.planAccion)}</p>` : ''}`;
     })() : '<p class="lede">Sin diagnóstico de brechas todavía.</p>'}
     ${u.perfilCrecimiento.length ? (()=>{
@@ -1013,19 +1067,23 @@ function attachViewEvents(){
     STATE.areaOpen = el.dataset.area; setView('areas');
   }));
 
-  const brechaSelect = document.getElementById('brecha-select');
-  if(brechaSelect) brechaSelect.addEventListener('change', ()=>{
-    const b = catalogoDiagnostico.brechas.find(x=>x.id===brechaSelect.value);
-    const hint = document.getElementById('brecha-hint');
-    if(hint && b) hint.textContent = b.descripcion;
-  });
+  document.querySelectorAll('.brecha-check').forEach(el=>el.addEventListener('change', ()=>{
+    const detalle = document.getElementById('detalle-' + el.dataset.brecha);
+    if(detalle) detalle.style.display = el.checked ? 'block' : 'none';
+  }));
   const bsBrecha = document.getElementById('btn-save-brecha');
   if(bsBrecha) bsBrecha.addEventListener('click', async ()=>{
-    const brecha = document.getElementById('brecha-select').value;
-    const reflexion = document.getElementById('brecha-reflexion').value;
+    const marcadas = [...document.querySelectorAll('.brecha-check:checked')].map(c=>c.dataset.brecha);
+    if(marcadas.length===0){ STATE.err = 'Marca al menos una brecha.'; render(); return; }
+    const partirLineas = txt => (txt||'').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,4);
+    const detalles = marcadas.map(id => ({
+      brecha: id,
+      causas: partirLineas(document.getElementById('causas-'+id)?.value),
+      efectos: partirLineas(document.getElementById('efectos-'+id)?.value)
+    }));
     const planAccion = document.getElementById('brecha-plan').value;
     try{
-      const res = await api('/data/brecha', { method:'POST', body:{ brecha, reflexion, planAccion } });
+      const res = await api('/data/brecha', { method:'POST', body:{ detalles, planAccion } });
       STATE.userData.brechas = res.brechas;
       STATE.ok = 'Diagnóstico guardado.';
     }catch(e){ STATE.err = e.message; }
@@ -1035,6 +1093,27 @@ function attachViewEvents(){
     try{
       const res = await api('/data/brecha/' + el.dataset.delbrecha, { method:'DELETE' });
       STATE.userData.brechas = res.brechas;
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+  document.querySelectorAll('[data-addauto]').forEach(el=>el.addEventListener('click', async ()=>{
+    const [rutaBase, preguntaId] = el.dataset.addauto.split(':');
+    const input = document.getElementById(`auto-${rutaBase}-${preguntaId}`);
+    const texto = input.value.trim();
+    if(!texto) return;
+    const clave = rutaBase==='conciencia' ? 'conciencia' : 'reflexionPersonal';
+    try{
+      const res = await api(`/data/${rutaBase}/${preguntaId}`, { method:'POST', body:{ texto } });
+      STATE.userData[clave] = res[clave];
+    }catch(e){ STATE.err = e.message; }
+    render();
+  }));
+  document.querySelectorAll('[data-delauto]').forEach(el=>el.addEventListener('click', async ()=>{
+    const [rutaBase, preguntaId, index] = el.dataset.delauto.split(':');
+    const clave = rutaBase==='conciencia' ? 'conciencia' : 'reflexionPersonal';
+    try{
+      const res = await api(`/data/${rutaBase}/${preguntaId}/${index}`, { method:'DELETE' });
+      STATE.userData[clave] = res[clave];
     }catch(e){ STATE.err = e.message; }
     render();
   }));

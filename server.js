@@ -66,8 +66,19 @@ app.use('/api/mentor', mentorRoutes);
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 // Frontend estático (la app ya compilada como HTML/JS/CSS)
-app.use(express.static(path.join(__dirname, 'public')));
+// Toda la app (HTML + CSS + JS) vive en un solo archivo (public/index.html),
+// así que es crítico que el navegador nunca se quede con una copia vieja en
+// caché tras un despliegue nuevo: si eso pasara, parecería que los cambios
+// "no funcionan" cuando en realidad el usuario sigue viendo código antiguo.
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    lastModified: false,
+    setHeaders: res => res.set('Cache-Control', 'no-store')
+  })
+);
 app.get('/{*splat}', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

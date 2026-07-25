@@ -152,11 +152,15 @@ Todas las rutas bajo `/api/data` y `/api/mentor` requieren el encabezado
 | GET    | `/api/data/export/pdf`               | Descarga tu plan completo en PDF con la identidad de Gamarra Leadership |
 | POST   | `/api/data/compromiso`               | Agrega un compromiso al historial (pasos 1 y 2) |
 | DELETE | `/api/data/compromiso/:index`        | Elimina una entrada del historial de compromisos |
-| GET    | `/api/data/diagnostico/catalogo`     | Catálogo de las 8 brechas y las preguntas del perfil de intencionalidad |
-| POST   | `/api/data/brecha`                    | Guarda cuál brecha te tiene atascado + reflexión + plan de acción |
+| GET    | `/api/data/diagnostico/catalogo`     | Catálogo de brechas, preguntas del perfil, Conciencia y Reflexión |
+| POST   | `/api/data/brecha`                    | Guarda una o varias brechas marcadas, cada una con sus causas/efectos, + plan de acción |
 | DELETE | `/api/data/brecha/:index`             | Elimina una entrada del historial de brechas    |
 | POST   | `/api/data/perfil-crecimiento`        | Guarda una autoevaluación accidental vs. intencional |
 | DELETE | `/api/data/perfil-crecimiento/:index` | Elimina una entrada del historial del perfil    |
+| POST   | `/api/data/conciencia/:preguntaId`    | Agrega una respuesta a una pregunta de la Ley de la Conciencia |
+| DELETE | `/api/data/conciencia/:preguntaId/:index` | Elimina una respuesta de esa pregunta       |
+| POST   | `/api/data/reflexion-personal/:preguntaId` | Agrega una respuesta a una pregunta de la Ley de la Reflexión |
+| DELETE | `/api/data/reflexion-personal/:preguntaId/:index` | Elimina una respuesta de esa pregunta |
 | POST   | `/api/data/foda/:categoria`          | Agrega un ítem (fortaleza/debilidad/oportunidad/amenaza) |
 | DELETE | `/api/data/foda/:categoria/:index`   | Elimina un ítem del FODA                        |
 | PUT    | `/api/data/foda/:categoria/:index/estado` | Cambia el estado de un ítem (activa/en_progreso/superada) |
@@ -197,25 +201,32 @@ toda persona nueva debe darse de alta desde el panel de mentor, con el botón
 
 ## Diagnóstico de crecimiento (brechas + perfil de intencionalidad)
 
-Inspirado en la Ley de la Intencionalidad, pero escrito con redacción propia
-(no se reproduce texto de ningún libro):
+Inspirado en la Ley de la Intencionalidad, la Ley de la Conciencia y la Ley
+de la Reflexión, pero escrito con redacción propia (no se reproduce texto de
+ningún libro):
 
-- **8 brechas de crecimiento** (suposición, conocimiento, tiempo, error,
-  perfección, inspiración, comparación, expectativas): el participante elige
-  cuál lo tiene atascado, escribe una reflexión y un plan de acción. Queda un
+- **8 brechas de crecimiento** (suposición, sabiduría, tiempo, error,
+  perfección, inspiración, comparación, expectativas): el participante puede
+  marcar **una, varias o las ocho a la vez** — no es una elección única.
+  Para cada brecha marcada, anota sus **causas** (hasta 4) y sus **efectos**
+  (hasta 4), además de un plan de acción general para esa ronda. Queda un
   historial completo, así que puede repetir el diagnóstico con el tiempo y
-  ver cómo cambia.
+  ver cómo cambian sus causas y efectos.
 - **Perfil accidental vs. intencional**: un cuestionario corto de 10
   preguntas pareadas que calcula un puntaje de 0 a 10 y lo interpreta. El
   cálculo del puntaje siempre ocurre en el servidor (`src/diagnostico.js`),
   nunca en el navegador.
+- **Ley de la Conciencia** (4 preguntas) y **Ley de la Reflexión** (11
+  preguntas): cada pregunta admite varias respuestas a lo largo del tiempo,
+  para ver cómo van cambiando. El banco de preguntas vive en
+  `src/diagnostico.js` (`CONCIENCIA_PREGUNTAS`, `REFLEXION_PERSONAL_PREGUNTAS`).
 - **Pregunta de reflexión diaria** en la Bitácora: un banco de 20 preguntas
   originales que rota automáticamente cada día (no se guarda como parte del
   dato, es solo una sugerencia visual sobre el formulario).
 
-Tanto la brecha actual como el puntaje del perfil más reciente aparecen en el
-detalle de mentor y en el PDF individual del participante, para que el
-mentor pueda dar seguimiento a cómo evoluciona con el tiempo.
+Las brechas (con sus causas/efectos) y el puntaje del perfil más reciente
+aparecen en el detalle de mentor y en el PDF individual del participante,
+para que el mentor pueda dar seguimiento a cómo evoluciona con el tiempo.
 
 ## Seguridad ya incluida
 

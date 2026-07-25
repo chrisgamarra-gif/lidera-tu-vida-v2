@@ -18,7 +18,7 @@ const BRECHAS = [
   },
   {
     id: 'conocimiento',
-    nombre: 'Brecha del conocimiento',
+    nombre: 'Brecha de la sabiduría',
     descripcion: 'No tengo claro qué pasos concretos debo seguir para crecer en esta área.'
   },
   {
@@ -130,4 +130,36 @@ function calcularPuntaje(respuestas) {
   return (respuestas || []).filter(r => r === 'b').length;
 }
 
-module.exports = { BRECHAS, PERFIL_PREGUNTAS, interpretarPuntaje, calcularPuntaje };
+// Preguntas de autoconocimiento inspiradas en la Ley de la Conciencia (saber
+// quién eres y hacia dónde vas) y la Ley de la Reflexión (pausar para
+// convertir la experiencia en aprendizaje). Cada pregunta admite varias
+// respuestas a lo largo del tiempo, para ver cómo van cambiando.
+const CONCIENCIA_PREGUNTAS = [
+  { id: 1, texto: '¿Te gusta lo que estás haciendo?' },
+  { id: 2, texto: '¿Qué te gustaría hacer?' },
+  { id: 3, texto: '¿Puedes hacer lo que te gustaría hacer?' },
+  { id: 4, texto: '¿Cómo vas a hacer lo que quieres hacer?' }
+];
+
+const REFLEXION_PERSONAL_PREGUNTAS = [
+  { id: 1, texto: '¿Cuál es tu activo más valioso?' },
+  { id: 2, texto: '¿Cuál es tu mayor responsabilidad?' },
+  { id: 3, texto: '¿Qué es lo que más te hace feliz?' },
+  { id: 4, texto: '¿Qué es lo que más te entristece?' },
+  { id: 5, texto: '¿Cuál de tus emociones vale más la pena?' },
+  { id: 6, texto: '¿Cuál de tus emociones vale menos la pena?' },
+  { id: 7, texto: '¿Cuál es tu mejor hábito?' },
+  { id: 8, texto: '¿Cuál es tu peor hábito?' },
+  { id: 9, texto: '¿Qué es lo que más te satisface?' },
+  { id: 10, texto: '¿Cuál es tu posesión más preciada?' },
+  { id: 11, texto: '¿Qué es lo que todavía no sabes de ti mismo?' }
+];
+
+module.exports = {
+  BRECHAS,
+  PERFIL_PREGUNTAS,
+  interpretarPuntaje,
+  calcularPuntaje,
+  CONCIENCIA_PREGUNTAS,
+  REFLEXION_PERSONAL_PREGUNTAS
+};

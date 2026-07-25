@@ -44,6 +44,8 @@ db.exec(`
     last_semaforos  TEXT NOT NULL DEFAULT '{"laboral":"rojo","personal":"rojo","familiar":"rojo","espiritual":"rojo"}',
     brechas         TEXT NOT NULL DEFAULT '[]',
     perfil_crecimiento TEXT NOT NULL DEFAULT '[]',
+    conciencia      TEXT NOT NULL DEFAULT '{}',
+    reflexion_personal TEXT NOT NULL DEFAULT '{}',
     updated_at      TEXT NOT NULL
   );
 `);
@@ -64,6 +66,8 @@ ensureColumn(
 ensureColumn('user_data', 'compromisos', `TEXT NOT NULL DEFAULT '[]'`);
 ensureColumn('user_data', 'brechas', `TEXT NOT NULL DEFAULT '[]'`);
 ensureColumn('user_data', 'perfil_crecimiento', `TEXT NOT NULL DEFAULT '[]'`);
+ensureColumn('user_data', 'conciencia', `TEXT NOT NULL DEFAULT '{}'`);
+ensureColumn('user_data', 'reflexion_personal', `TEXT NOT NULL DEFAULT '{}'`);
 
 // Migración de datos: si existe una columna vieja "compromiso" (objeto único,
 // versión anterior de la app) y la nueva "compromisos" (lista) sigue vacía,
@@ -143,6 +147,8 @@ function rowToData(row) {
     compartir: JSON.parse(row.compartir),
     brechas: JSON.parse(row.brechas),
     perfilCrecimiento: JSON.parse(row.perfil_crecimiento),
+    conciencia: JSON.parse(row.conciencia),
+    reflexionPersonal: JSON.parse(row.reflexion_personal),
     actualizado: row.updated_at
   };
 }
@@ -220,6 +226,30 @@ function setFodaEstado(userId, categoria, index, estado) {
   return foda;
 }
 
+/* ---------------------------- autoconocimiento: conciencia y reflexión personal ----------------------------
+ * Ambas columnas guardan un objeto { [preguntaId]: [respuesta1, respuesta2, ...] }.
+ * Se puede agregar más de una respuesta por pregunta y con el tiempo, para
+ * ver cómo van cambiando las respuestas de la persona. */
+function addRespuesta(userId, columna, preguntaId, texto) {
+  const row = db.prepare(`SELECT ${columna} FROM user_data WHERE user_id = ?`).get(userId);
+  const datos = JSON.parse(row[columna]);
+  if (!Array.isArray(datos[preguntaId])) datos[preguntaId] = [];
+  datos[preguntaId].push({ texto, fecha: new Date().toISOString().slice(0, 10) });
+  db.prepare(`UPDATE user_data SET ${columna} = ? WHERE user_id = ?`).run(JSON.stringify(datos), userId);
+  touch(userId);
+  return datos;
+}
+
+function removeRespuesta(userId, columna, preguntaId, index) {
+  const row = db.prepare(`SELECT ${columna} FROM user_data WHERE user_id = ?`).get(userId);
+  const datos = JSON.parse(row[columna]);
+  if (!Array.isArray(datos[preguntaId]) || index < 0 || index >= datos[preguntaId].length) return datos;
+  datos[preguntaId].splice(index, 1);
+  db.prepare(`UPDATE user_data SET ${columna} = ? WHERE user_id = ?`).run(JSON.stringify(datos), userId);
+  touch(userId);
+  return datos;
+}
+
 function getLastSemaforos(userId) {
   const row = db.prepare(`SELECT last_semaforos FROM user_data WHERE user_id = ?`).get(userId);
   return row ? JSON.parse(row.last_semaforos) : null;
@@ -245,5 +275,7 @@ module.exports = {
   removeFodaItem,
   setFodaEstado,
   getLastSemaforos,
-  setLastSemaforos
+  setLastSemaforos,
+  addRespuesta,
+  removeRespuesta
 };

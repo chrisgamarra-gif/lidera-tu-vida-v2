@@ -6,6 +6,7 @@
 const path = require('node:path');
 const PDFDocument = require('pdfkit');
 const { allSemaforos, stepsCompleted } = require('./growth');
+const { CONCIENCIA_PREGUNTAS, REFLEXION_PERSONAL_PREGUNTAS } = require('./diagnostico');
 
 const LOGO_PATH = path.join(__dirname, 'assets', 'logo-claro.png');
 
@@ -150,13 +151,20 @@ function buildGrowthPlanPdf(data, usuario) {
   // ---- Brechas de crecimiento y perfil de intencionalidad ----
   sectionTitle(doc, 'Diagnostico de intencionalidad');
   const BRECHA_LABELS = {
-    suposicion: 'Suposicion', conocimiento: 'Conocimiento', tiempo: 'Tiempo', error: 'Error',
+    suposicion: 'Suposicion', conocimiento: 'Sabiduria', tiempo: 'Tiempo', error: 'Error',
     perfeccion: 'Perfeccion', inspiracion: 'Inspiracion', comparacion: 'Comparacion', expectativas: 'Expectativas'
   };
   if (data.brechas.length) {
     const ultimaBrecha = data.brechas[data.brechas.length - 1];
-    paragraph(doc, `Brecha identificada: ${BRECHA_LABELS[ultimaBrecha.brecha] || ultimaBrecha.brecha}`, { bold: true });
-    if (ultimaBrecha.reflexion) paragraph(doc, ultimaBrecha.reflexion, { size: 9.5, color: INK_SOFT });
+    (ultimaBrecha.detalles || []).forEach(d => {
+      paragraph(doc, BRECHA_LABELS[d.brecha] || d.brecha, { bold: true, size: 10 });
+      if (d.causas && d.causas.length) {
+        paragraph(doc, `Causas: ${d.causas.join(' | ')}`, { size: 9, color: INK_SOFT });
+      }
+      if (d.efectos && d.efectos.length) {
+        paragraph(doc, `Efectos: ${d.efectos.join(' | ')}`, { size: 9, color: INK_SOFT });
+      }
+    });
     if (ultimaBrecha.planAccion) paragraph(doc, `Plan de accion: ${ultimaBrecha.planAccion}`, { size: 9.5, color: INK_SOFT });
   } else {
     paragraph(doc, 'Sin diagnostico de brechas todavia.', { color: INK_SOFT });
@@ -169,6 +177,25 @@ function buildGrowthPlanPdf(data, usuario) {
       color: INK_SOFT
     });
   }
+
+  // ---- Ley de la Conciencia y Ley de la Reflexion ----
+  function seccionAutoconocimiento(titulo, preguntas, datos) {
+    sectionTitle(doc, titulo);
+    const conRespuestas = preguntas.filter(p => Array.isArray(datos[p.id]) && datos[p.id].length);
+    if (!conRespuestas.length) {
+      paragraph(doc, 'Sin respuestas todavia.', { color: INK_SOFT });
+      return;
+    }
+    conRespuestas.forEach(p => {
+      doc.font('Helvetica-Bold').fontSize(9.5).fillColor(INK).text(p.texto);
+      datos[p.id].forEach(r => {
+        doc.font('Helvetica').fontSize(9).fillColor(INK_SOFT).text(`- ${r.texto}`);
+      });
+      doc.moveDown(0.2);
+    });
+  }
+  seccionAutoconocimiento('Ley de la Conciencia', CONCIENCIA_PREGUNTAS, data.conciencia || {});
+  seccionAutoconocimiento('Ley de la Reflexion', REFLEXION_PERSONAL_PREGUNTAS, data.reflexionPersonal || {});
 
   // ---- FODA ----
   sectionTitle(doc, 'Diagnostico FODA');

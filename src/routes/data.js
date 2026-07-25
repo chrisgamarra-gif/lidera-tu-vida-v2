@@ -5,7 +5,14 @@ const { requireAuth } = require('../auth');
 const { allSemaforos, stepsCompleted } = require('../growth');
 const { buildGrowthPlanPdf } = require('../pdf');
 const { checkSemaforoTransitions } = require('../semaforoWatcher');
-const { BRECHAS, PERFIL_PREGUNTAS, interpretarPuntaje, calcularPuntaje } = require('../diagnostico');
+const {
+  BRECHAS,
+  PERFIL_PREGUNTAS,
+  interpretarPuntaje,
+  calcularPuntaje,
+  CONCIENCIA_PREGUNTAS,
+  REFLEXION_PERSONAL_PREGUNTAS
+} = require('../diagnostico');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -41,18 +48,42 @@ router.get('/export/pdf', (req, res) => {
   doc.end();
 });
 
-/* -------- catálogo estático del diagnóstico (brechas + preguntas del perfil) -------- */
+/* -------- catálogo estático del diagnóstico (brechas + preguntas) -------- */
 router.get('/diagnostico/catalogo', (req, res) => {
-  res.json({ brechas: BRECHAS, preguntas: PERFIL_PREGUNTAS });
+  res.json({
+    brechas: BRECHAS,
+    preguntas: PERFIL_PREGUNTAS,
+    conciencia: CONCIENCIA_PREGUNTAS,
+    reflexionPersonal: REFLEXION_PERSONAL_PREGUNTAS
+  });
 });
 
-/* -------- brechas de crecimiento: cuál te tiene atascado ahora, con reflexión -------- */
+/* -------- brechas de crecimiento: cuáles te tienen atascado, con causas y efectos -------- */
 router.post('/brecha', (req, res) => {
-  const { brecha, reflexion, planAccion } = req.body || {};
-  if (!BRECHAS.some(b => b.id === brecha)) return res.status(400).json({ error: 'Brecha no válida.' });
+  const { detalles, planAccion } = req.body || {};
+  if (!Array.isArray(detalles) || detalles.length === 0) {
+    return res.status(400).json({ error: 'Elige al menos una brecha.' });
+  }
+  const idsValidos = new Set(BRECHAS.map(b => b.id));
+  const limpiarLista = arr => (Array.isArray(arr) ? arr : [])
+    .map(t => String(t || '').trim())
+    .filter(Boolean)
+    .slice(0, 4);
+
+  const detallesLimpios = [];
+  for (const d of detalles || []) {
+    if (!d || !idsValidos.has(d.brecha)) {
+      return res.status(400).json({ error: 'Una de las brechas elegidas no es válida.' });
+    }
+    detallesLimpios.push({
+      brecha: d.brecha,
+      causas: limpiarLista(d.causas),
+      efectos: limpiarLista(d.efectos)
+    });
+  }
+
   const entrada = {
-    brecha,
-    reflexion: String(reflexion || '').slice(0, 2000),
+    detalles: detallesLimpios,
     planAccion: String(planAccion || '').slice(0, 1000),
     fecha: new Date().toISOString().slice(0, 10)
   };
@@ -63,6 +94,27 @@ router.delete('/brecha/:index', (req, res) => {
   const brechas = db.removeFromList(currentUserId(req), 'brechas', Number(req.params.index));
   res.json({ ok: true, brechas });
 });
+
+/* -------- Ley de la Conciencia y Ley de la Reflexión: preguntas con varias respuestas -------- */
+function crearRutasAutoconocimiento(rutaBase, columna, preguntasValidas) {
+  router.post(`/${rutaBase}/:preguntaId`, (req, res) => {
+    const preguntaId = Number(req.params.preguntaId);
+    if (!preguntasValidas.some(p => p.id === preguntaId)) {
+      return res.status(400).json({ error: 'Pregunta no válida.' });
+    }
+    const { texto } = req.body || {};
+    if (!texto || !String(texto).trim()) return res.status(400).json({ error: 'Escribe tu respuesta.' });
+    const datos = db.addRespuesta(currentUserId(req), columna, preguntaId, String(texto).trim().slice(0, 1000));
+    res.status(201).json({ ok: true, [columna === 'reflexion_personal' ? 'reflexionPersonal' : columna]: datos });
+  });
+  router.delete(`/${rutaBase}/:preguntaId/:index`, (req, res) => {
+    const preguntaId = Number(req.params.preguntaId);
+    const datos = db.removeRespuesta(currentUserId(req), columna, preguntaId, Number(req.params.index));
+    res.json({ ok: true, [columna === 'reflexion_personal' ? 'reflexionPersonal' : columna]: datos });
+  });
+}
+crearRutasAutoconocimiento('conciencia', 'conciencia', CONCIENCIA_PREGUNTAS);
+crearRutasAutoconocimiento('reflexion-personal', 'reflexion_personal', REFLEXION_PERSONAL_PREGUNTAS);
 
 /* -------- perfil de crecimiento: accidental <-> intencional -------- */
 router.post('/perfil-crecimiento', (req, res) => {
