@@ -122,11 +122,16 @@ router.post('/ley/:leyId/:preguntaId', (req, res) => {
   const preguntas = obtenerPreguntasDeLey(leyId);
   if (!preguntas) return res.status(400).json({ error: 'Ley no válida.' });
   if (!preguntas.some(p => p.id === preguntaId)) return res.status(400).json({ error: 'Pregunta no válida.' });
-  const { personal, familiar, laboral } = req.body || {};
+  const { personal, familiar, laboral, espiritual } = req.body || {};
   const limpiar = t => String(t || '').trim().slice(0, 500);
-  const facetas = { personal: limpiar(personal), familiar: limpiar(familiar), laboral: limpiar(laboral) };
-  if (!facetas.personal && !facetas.familiar && !facetas.laboral) {
-    return res.status(400).json({ error: 'Escribe al menos una respuesta (Personal, Familiar o Laboral).' });
+  const facetas = {
+    personal: limpiar(personal),
+    familiar: limpiar(familiar),
+    laboral: limpiar(laboral),
+    espiritual: limpiar(espiritual)
+  };
+  if (!facetas.personal && !facetas.familiar && !facetas.laboral && !facetas.espiritual) {
+    return res.status(400).json({ error: 'Escribe al menos una respuesta (Personal, Familiar, Laboral o Espiritual).' });
   }
   const leyes = db.addRespuestaLey(currentUserId(req), leyId, preguntaId, facetas);
   res.status(201).json({ ok: true, leyes });
@@ -164,12 +169,19 @@ router.delete('/perfil-crecimiento/:index', (req, res) => {
 
 /* -------- compromiso (pasos 1 y 2): historial de compromisos a lo largo del tiempo -------- */
 router.post('/compromiso', (req, res) => {
-  const { declaracion, fecha, publicoCon, publicoMensaje } = req.body || {};
-  if (!declaracion || !String(declaracion).trim()) {
-    return res.status(400).json({ error: 'Escribe tu declaración de compromiso.' });
+  const { personal, familiar, laboral, espiritual, fecha, publicoCon, publicoMensaje } = req.body || {};
+  const limpiar = t => String(t || '').trim().slice(0, 1000);
+  const facetas = {
+    personal: limpiar(personal),
+    familiar: limpiar(familiar),
+    laboral: limpiar(laboral),
+    espiritual: limpiar(espiritual)
+  };
+  if (!facetas.personal && !facetas.familiar && !facetas.laboral && !facetas.espiritual) {
+    return res.status(400).json({ error: 'Escribe al menos un compromiso (Personal, Familiar, Laboral o Espiritual).' });
   }
   const entrada = {
-    declaracion: String(declaracion).slice(0, 2000),
+    ...facetas,
     fecha: String(fecha || new Date().toISOString().slice(0, 10)).slice(0, 30),
     publicoCon: String(publicoCon || '').slice(0, 200),
     publicoMensaje: String(publicoMensaje || '').slice(0, 2000),

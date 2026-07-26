@@ -8,7 +8,7 @@
 const { TODAS_LAS_PREGUNTAS } = require('./diagnostico');
 
 const AREA_KEYS = ['laboral', 'personal', 'familiar', 'espiritual'];
-const FACETAS = ['personal', 'familiar', 'laboral'];
+const FACETAS = ['personal', 'familiar', 'laboral', 'espiritual'];
 
 function computeAreaScore(area, planificador, areaKey) {
   let score = 0;
@@ -61,7 +61,8 @@ function allSemaforos(data) {
 function stepsCompleted(u) {
   let n = 0;
   const ultimoCompromiso = u.compromisos[u.compromisos.length - 1];
-  if (ultimoCompromiso && ultimoCompromiso.declaracion && ultimoCompromiso.declaracion.trim().length > 4) n++;
+  const tieneAlgunaFaceta = c => c && FACETAS.some(f => c[f] && c[f].trim().length > 4);
+  if (tieneAlgunaFaceta(ultimoCompromiso)) n++;
   if (ultimoCompromiso && ultimoCompromiso.publicoCon && ultimoCompromiso.publicoCon.trim().length > 1) n++;
   const f = u.foda;
   if (f.fortalezas.length || f.debilidades.length || f.oportunidades.length || f.amenazas.length) n++;

@@ -97,6 +97,7 @@ function labelValue(doc, label, value) {
  */
 function buildGrowthPlanPdf(data, usuario) {
   const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
+  const FACETA_LABEL = { personal: 'Personal', familiar: 'Familiar', laboral: 'Laboral', espiritual: 'Espiritual' };
 
   drawHeader(doc, usuario.nombre);
 
@@ -127,14 +128,16 @@ function buildGrowthPlanPdf(data, usuario) {
   });
   doc.y = startY + 34;
 
-  // ---- Compromiso (historial) ----
+  // ---- Compromiso (historial, con 4 facetas) ----
   sectionTitle(doc, 'Compromiso de crecimiento');
   if (!data.compromisos.length) {
     paragraph(doc, 'Sin compromiso declarado todavia.', { color: INK_SOFT });
   } else {
     const ultimo = data.compromisos[data.compromisos.length - 1];
     paragraph(doc, 'Compromiso mas reciente:', { bold: true, size: 9.5, color: INK_SOFT });
-    labelValue(doc, 'Declaracion', ultimo.declaracion);
+    ['personal', 'familiar', 'laboral', 'espiritual'].forEach(faceta => {
+      if (ultimo[faceta]) labelValue(doc, FACETA_LABEL[faceta], ultimo[faceta]);
+    });
     labelValue(doc, 'Compartido con', ultimo.publicoCon);
     labelValue(doc, 'Mensaje', ultimo.publicoMensaje);
     if (data.compromisos.length > 1) {
@@ -143,7 +146,11 @@ function buildGrowthPlanPdf(data, usuario) {
         .slice(0, -1)
         .reverse()
         .forEach(c => {
-          doc.font('Helvetica').fontSize(9).fillColor(INK_SOFT).text(`${fmtDate(c.fecha)} - ${c.declaracion}`);
+          const resumen = ['personal', 'familiar', 'laboral', 'espiritual']
+            .filter(f => c[f])
+            .map(f => `${FACETA_LABEL[f]}: ${c[f]}`)
+            .join(' | ');
+          doc.font('Helvetica').fontSize(9).fillColor(INK_SOFT).text(`${fmtDate(c.fecha)} - ${resumen}`);
         });
     }
   }
@@ -181,7 +188,6 @@ function buildGrowthPlanPdf(data, usuario) {
   // ---- Resumen general y por faceta (Personal / Familiar / Laboral) ----
   sectionTitle(doc, 'Resumen de tus respuestas por faceta');
   const avanceFacetas = calcularAvanceFacetas(data);
-  const FACETA_LABEL = { personal: 'Personal', familiar: 'Familiar', laboral: 'Laboral' };
   const totalPreguntas = avanceFacetas.personal.total;
   const totalContestadasGeneral = Object.values(avanceFacetas).reduce((s, f) => s + f.contestadas, 0);
   paragraph(doc, `De ${totalPreguntas} preguntas de las 15 leyes, tienes respuestas registradas repartidas asi:`, {
@@ -212,7 +218,7 @@ function buildGrowthPlanPdf(data, usuario) {
     conRespuestas.forEach(p => {
       doc.font('Helvetica-Bold').fontSize(9.5).fillColor(INK).text(p.texto);
       datos[p.id].forEach(r => {
-        ['personal', 'familiar', 'laboral'].forEach(faceta => {
+        ['personal', 'familiar', 'laboral', 'espiritual'].forEach(faceta => {
           if (r[faceta] && String(r[faceta]).trim()) {
             doc
               .font('Helvetica')
@@ -442,8 +448,14 @@ function buildConsolidatedPdf(mentees, opts = {}) {
 
       if (m.data.compromisos.length) {
         const ultimo = m.data.compromisos[m.data.compromisos.length - 1];
-        doc.moveDown(0.2);
-        doc.font('Helvetica-Oblique').fontSize(9).fillColor(INK_SOFT).text(`"${ultimo.declaracion}"`);
+        const resumenCompromiso = ['personal', 'familiar', 'laboral', 'espiritual']
+          .filter(f => ultimo[f])
+          .map(f => ultimo[f])
+          .join(' | ');
+        if (resumenCompromiso) {
+          doc.moveDown(0.2);
+          doc.font('Helvetica-Oblique').fontSize(9).fillColor(INK_SOFT).text(`"${resumenCompromiso}"`);
+        }
       }
 
       const ultimaActividad = m.data.planificador[m.data.planificador.length - 1];

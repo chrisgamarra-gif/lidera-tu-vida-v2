@@ -214,30 +214,38 @@ reproduce texto de ningún libro):
 4. **Reflexión**: el perfil accidental vs. intencional (10 preguntas
    pareadas, puntaje 0-10) + 11 preguntas cortas de autoconocimiento.
 
-### Cada pregunta tiene 3 facetas: Personal, Familiar, Laboral
+### Cada pregunta tiene 4 facetas: Personal, Familiar, Laboral, Espiritual
 
 En las 13 leyes que usan el banco genérico de preguntas (todas menos
 Intencionalidad y el FODA de Conciencia), cada pregunta se responde en hasta
-3 facetas — no hace falta llenar las 3, con una alcanza para guardar. Cada
-respuesta guardada trae sus 3 campos (`personal`, `familiar`, `laboral`) más
-la fecha.
+4 facetas — no hace falta llenar las 4, con una alcanza para guardar. Cada
+respuesta guardada trae sus 4 campos (`personal`, `familiar`, `laboral`,
+`espiritual`) más la fecha.
 
-**Nuevo semáforo de facetas** (panel "Avance en tus respuestas de las 15
-leyes" en el Panel principal): compara cuántas de las 81 preguntas totales
-tienen ya una respuesta registrada en cada faceta, con el mismo criterio de
-semáforo que las áreas de vida (verde ≥66%, amarillo ≥33%, rojo por debajo).
-El cálculo (`calcularAvanceFacetas` en `src/growth.js`) siempre corre en el
-servidor; el mentor lo ve también por cada participante.
+**El Compromiso (pasos 1 y 2) también es faceteado**: en vez de una sola
+declaración de texto libre, se llenan hasta 4 campos (Personal, Familiar,
+Laboral, Espiritual) — de nuevo, con uno solo alcanza. Puedes guardar
+cuantos compromisos quieras a lo largo del tiempo; cada uno queda como una
+entrada nueva en el historial, mostrando qué faceta(s) declaraste en cada
+ocasión.
+
+**Semáforo de facetas** (panel "Avance en tus respuestas de las 15 leyes"
+en el Panel principal): compara cuántas de las 81 preguntas totales tienen
+ya una respuesta registrada en cada una de las 4 facetas, con el mismo
+criterio de semáforo que las áreas de vida (verde ≥66%, amarillo ≥33%, rojo
+por debajo). El cálculo (`calcularAvanceFacetas` en `src/growth.js`)
+siempre corre en el servidor; el mentor lo ve también por cada participante.
 
 **En el PDF** aparece una sección "Resumen de tus respuestas por faceta" con
-el total general y el desglose Personal/Familiar/Laboral, antes del detalle
-pregunta por pregunta de cada ley (donde cada respuesta ahora se etiqueta
-con a qué faceta pertenece).
+el desglose Personal/Familiar/Laboral/Espiritual, antes del detalle
+pregunta por pregunta de cada ley (donde cada respuesta se etiqueta con a
+qué faceta pertenece), y el compromiso más reciente también muestra sus
+facetas por separado.
 
 Todo el contenido de las 15 leyes vive en `src/diagnostico.js`
 (`LEYES_EXTRA`, `LEY_ORDEN` y `TODAS_LAS_PREGUNTAS`). Las respuestas se
 guardan en una sola columna `leyes` (JSON:
-`{ [leyId]: { [preguntaId]: [{personal, familiar, laboral, fecha}, ...] } }`),
+`{ [leyId]: { [preguntaId]: [{personal, familiar, laboral, espiritual, fecha}, ...] } }`),
 vía los endpoints `POST/DELETE /api/data/ley/:leyId/:preguntaId`.
 
 ## Bitácora de seguimiento mensual

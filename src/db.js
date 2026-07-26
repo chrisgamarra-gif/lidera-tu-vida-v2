@@ -265,6 +265,7 @@ function addRespuestaLey(userId, leyId, preguntaId, facetas) {
     personal: facetas.personal || '',
     familiar: facetas.familiar || '',
     laboral: facetas.laboral || '',
+    espiritual: facetas.espiritual || '',
     fecha: new Date().toISOString().slice(0, 10)
   });
   db.prepare(`UPDATE user_data SET leyes = ? WHERE user_id = ?`).run(JSON.stringify(leyes), userId);

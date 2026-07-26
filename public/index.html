@@ -481,10 +481,10 @@ function renderDashboard(){
     <p class="lede">Cuántas de las preguntas del diagnóstico ya tienen respuesta, por cada faceta de tu vida.</p>
     ${catalogoDiagnostico ? (()=>{
       const avance = calcularAvanceFacetasLocal(u);
-      const FACETA_ICONS = { personal:'🌱', familiar:'🏡', laboral:'💼' };
-      const FACETA_LABELS = { personal:'Personal', familiar:'Familiar', laboral:'Laboral' };
-      return `<div class="arealist" style="grid-template-columns:repeat(3,1fr);">
-        ${['personal','familiar','laboral'].map(f=>{
+      const FACETA_ICONS = { personal:'🌱', familiar:'🏡', laboral:'💼', espiritual:'✦' };
+      const FACETA_LABELS = { personal:'Personal', familiar:'Familiar', laboral:'Laboral', espiritual:'Espiritual' };
+      return `<div class="arealist">
+        ${['personal','familiar','laboral','espiritual'].map(f=>{
           const info = avance[f];
           return `<div class="areacard" style="cursor:default;">
             <span class="icon">${FACETA_ICONS[f]}</span>
@@ -499,7 +499,12 @@ function renderDashboard(){
   <div class="grid2">
     <div class="card">
       <h2 style="font-size:17px;">Tu compromiso</h2>
-      <p class="lede" style="margin-bottom:10px;">${u.compromisos.length ? esc(u.compromisos[u.compromisos.length-1].declaracion) : 'Aún no has declarado tu compromiso de crecer intencionalmente.'}</p>
+      <p class="lede" style="margin-bottom:10px;">${(()=>{
+        if(!u.compromisos.length) return 'Aún no has declarado tu compromiso de crecer intencionalmente.';
+        const ultimo = u.compromisos[u.compromisos.length-1];
+        const partes = ['personal','familiar','laboral','espiritual'].filter(f=>ultimo[f]).map(f=>ultimo[f]);
+        return esc(partes.join(' · ')) || 'Aún no has declarado tu compromiso de crecer intencionalmente.';
+      })()}</p>
       <button class="btn secondary small" data-v="compromiso">Ir a compromiso</button>
     </div>
     <div class="card">
@@ -524,7 +529,7 @@ function calcularAvanceFacetasLocal(u){
     ley.preguntas.forEach(p=>todas.push({leyId, preguntaId:p.id}));
   });
   const resultado = {};
-  ['personal','familiar','laboral'].forEach(faceta=>{
+  ['personal','familiar','laboral','espiritual'].forEach(faceta=>{
     let contestadas = 0;
     todas.forEach(({leyId,preguntaId})=>{
       const respuestas = (u.leyes[leyId] && u.leyes[leyId][preguntaId]) || [];
@@ -560,7 +565,8 @@ function areaSemaforoLocal(userData, areaKey){ return semaforoFromScoreLocal(com
 function stepsCompletedLocal(u){
   let n = 0;
   const ultimo = u.compromisos[u.compromisos.length-1];
-  if(ultimo && ultimo.declaracion.trim().length>4) n++;
+  const tieneAlgunaFaceta = c => c && ['personal','familiar','laboral','espiritual'].some(f=>c[f] && c[f].trim().length>4);
+  if(tieneAlgunaFaceta(ultimo)) n++;
   if(ultimo && ultimo.publicoCon.trim().length>1) n++;
   if(u.foda.fortalezas.length || u.foda.debilidades.length || u.foda.oportunidades.length || u.foda.amenazas.length) n++;
   if(u.planificador.length>0) n++;
@@ -575,10 +581,14 @@ function renderCompromiso(){
   return `
   <div class="card">
     <h2>Paso 1 y 2 · Comprométete y hazlo público</h2>
-    <p class="lede">El crecimiento no te sucede solo, como un jardín que nadie cultiva. Escribe tu declaración de compromiso, con quién la compartirás y qué le dirás. Puedes renovar tu compromiso cuando quieras — cada uno queda guardado en tu historial, para que veas cómo ha evolucionado.</p>
-    <div class="field">
-      <label>Mi declaración de compromiso</label>
-      <textarea id="f-declaracion" rows="3" placeholder="Ej: Me comprometo a invertir una hora diaria en mi desarrollo, empezando por..."></textarea>
+    <p class="lede">El crecimiento no te sucede solo, como un jardín que nadie cultiva. Escribe tu compromiso en la(s) faceta(s) que quieras hoy — no hace falta llenar las 4 — junto con quién lo compartirás. Puedes renovar tu compromiso cuando quieras: cada uno queda guardado en tu historial, para que veas cómo ha evolucionado.</p>
+    <div class="grid2">
+      <div class="field"><label>Personal</label><textarea id="f-compromiso-personal" rows="2" placeholder="Ej: Me comprometo a leer 20 minutos diarios..."></textarea></div>
+      <div class="field"><label>Familiar</label><textarea id="f-compromiso-familiar" rows="2" placeholder="Ej: Me comprometo a cenar sin celular con mi familia..."></textarea></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Laboral</label><textarea id="f-compromiso-laboral" rows="2" placeholder="Ej: Me comprometo a terminar mis pendientes a tiempo..."></textarea></div>
+      <div class="field"><label>Espiritual</label><textarea id="f-compromiso-espiritual" rows="2" placeholder="Ej: Me comprometo a dedicar tiempo a mi fe cada semana..."></textarea></div>
     </div>
     <div class="grid2">
       <div class="field"><label>¿Con quién lo compartirás?</label><input type="text" id="f-publico-con" placeholder="ej. mi mentor, mi pareja, mi equipo"></div>
@@ -586,6 +596,7 @@ function renderCompromiso(){
     </div>
     <div class="field"><label>Mensaje que compartirás</label><textarea id="f-publico-msg" rows="2" placeholder="Ej: Quiero contarte que decidí..."></textarea></div>
     <button class="btn" id="btn-save-compromiso">Guardar este compromiso</button>
+    ${STATE.err ? `<div class="errbox">${esc(STATE.err)}</div>` : ''}
     ${STATE.ok ? `<div class="okbox">${esc(STATE.ok)}</div>` : ''}
   </div>
   <div class="card">
@@ -595,11 +606,13 @@ function renderCompromiso(){
         ${list.slice().reverse().map((c,ridx)=>{
           const i = list.length-1-ridx;
           const esActual = i === list.length-1;
+          const FACETA_LABELS = { personal:'Personal', familiar:'Familiar', laboral:'Laboral', espiritual:'Espiritual' };
           return `<li class="rowitem" style="display:block;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <span>${esActual ? '<span class="tagpill">Actual</span>' : ''}<b>${esc(c.declaracion)}</b></span>
+              <span>${esActual ? '<span class="tagpill">Actual</span>' : ''}</span>
               <span class="meta">${fmtDate(c.fecha)} <button class="btn secondary small" data-delcompromiso="${i}" style="margin-left:6px;">Eliminar</button></span>
             </div>
+            ${['personal','familiar','laboral','espiritual'].filter(f=>c[f]).map(f=>`<div style="margin-top:4px; font-size:12.5px;"><b>${FACETA_LABELS[f]}:</b> ${esc(c[f])}</div>`).join('')}
             ${c.publicoCon ? `<div style="margin-top:4px; font-size:12.5px; color:var(--ink-soft);">Compartido con: ${esc(c.publicoCon)}${c.publicoMensaje ? ' — "'+esc(c.publicoMensaje)+'"' : ''}</div>` : ''}
           </li>`;
         }).join('')}
@@ -798,13 +811,17 @@ function renderAutoconocimiento(leyId, titulo, lede, preguntas, respuestasGuarda
             ${r.personal ? `<div style="margin-top:4px; font-size:12.5px;"><b>Personal:</b> ${esc(r.personal)}</div>` : ''}
             ${r.familiar ? `<div style="margin-top:2px; font-size:12.5px;"><b>Familiar:</b> ${esc(r.familiar)}</div>` : ''}
             ${r.laboral ? `<div style="margin-top:2px; font-size:12.5px;"><b>Laboral:</b> ${esc(r.laboral)}</div>` : ''}
+            ${r.espiritual ? `<div style="margin-top:2px; font-size:12.5px;"><b>Espiritual:</b> ${esc(r.espiritual)}</div>` : ''}
           </li>`).join('')}
         </ul>` : ''}
         <div class="grid2" style="margin-bottom:6px;">
           <div class="field" style="margin-bottom:6px;"><label>Personal</label><input type="text" id="auto-${leyId}-${p.id}-personal" placeholder="Tu respuesta en lo personal…"></div>
           <div class="field" style="margin-bottom:6px;"><label>Familiar</label><input type="text" id="auto-${leyId}-${p.id}-familiar" placeholder="Tu respuesta en lo familiar…"></div>
         </div>
-        <div class="field" style="margin-bottom:8px;"><label>Laboral</label><input type="text" id="auto-${leyId}-${p.id}-laboral" placeholder="Tu respuesta en lo laboral…"></div>
+        <div class="grid2" style="margin-bottom:8px;">
+          <div class="field" style="margin-bottom:6px;"><label>Laboral</label><input type="text" id="auto-${leyId}-${p.id}-laboral" placeholder="Tu respuesta en lo laboral…"></div>
+          <div class="field" style="margin-bottom:6px;"><label>Espiritual</label><input type="text" id="auto-${leyId}-${p.id}-espiritual" placeholder="Tu respuesta en lo espiritual…"></div>
+        </div>
         <button class="btn small" data-addauto="${leyId}:${p.id}">Guardar respuesta</button>
       </div>`;
     }).join('')}
@@ -1135,7 +1152,9 @@ function renderMentorDetail(person){
     <h2 style="font-size:16px;">Compromiso declarado</h2>
     ${u.compromisos.length ? (()=>{
       const ultimo = u.compromisos[u.compromisos.length-1];
-      return `<p class="lede" style="margin-bottom:4px;">${esc(ultimo.declaracion)}</p>
+      const FACETA_LABELS = { personal:'Personal', familiar:'Familiar', laboral:'Laboral', espiritual:'Espiritual' };
+      const partes = ['personal','familiar','laboral','espiritual'].filter(f=>ultimo[f]).map(f=>`<b>${FACETA_LABELS[f]}:</b> ${esc(ultimo[f])}`);
+      return `${partes.map(p=>`<p class="lede" style="margin-bottom:4px;">${p}</p>`).join('')}
       ${ultimo.publicoCon ? `<p class="lede">Lo compartió con: <b>${esc(ultimo.publicoCon)}</b></p>` : ''}
       ${u.compromisos.length>1 ? `<p class="meta">+ ${u.compromisos.length-1} compromiso(s) anterior(es) en su historial.</p>` : ''}`;
     })() : '<p class="lede">Sin declarar.</p>'}
@@ -1224,9 +1243,10 @@ function attachViewEvents(){
     const personal = document.getElementById(`auto-${leyId}-${preguntaId}-personal`).value.trim();
     const familiar = document.getElementById(`auto-${leyId}-${preguntaId}-familiar`).value.trim();
     const laboral = document.getElementById(`auto-${leyId}-${preguntaId}-laboral`).value.trim();
-    if(!personal && !familiar && !laboral){ STATE.err = 'Escribe al menos una respuesta (Personal, Familiar o Laboral).'; render(); return; }
+    const espiritual = document.getElementById(`auto-${leyId}-${preguntaId}-espiritual`).value.trim();
+    if(!personal && !familiar && !laboral && !espiritual){ STATE.err = 'Escribe al menos una respuesta (Personal, Familiar, Laboral o Espiritual).'; render(); return; }
     try{
-      const res = await api(`/data/ley/${leyId}/${preguntaId}`, { method:'POST', body:{ personal, familiar, laboral } });
+      const res = await api(`/data/ley/${leyId}/${preguntaId}`, { method:'POST', body:{ personal, familiar, laboral, espiritual } });
       STATE.userData.leyes = res.leyes;
       STATE.err = '';
     }catch(e){ STATE.err = e.message; }
@@ -1266,16 +1286,20 @@ function attachViewEvents(){
 
   const bsc = document.getElementById('btn-save-compromiso');
   if(bsc) bsc.addEventListener('click', async ()=>{
-    const declaracion = document.getElementById('f-declaracion').value.trim();
-    if(!declaracion){ STATE.err='Escribe tu declaración de compromiso.'; render(); return; }
+    const personal = document.getElementById('f-compromiso-personal').value.trim();
+    const familiar = document.getElementById('f-compromiso-familiar').value.trim();
+    const laboral = document.getElementById('f-compromiso-laboral').value.trim();
+    const espiritual = document.getElementById('f-compromiso-espiritual').value.trim();
+    if(!personal && !familiar && !laboral && !espiritual){ STATE.err='Escribe al menos un compromiso (Personal, Familiar, Laboral o Espiritual).'; render(); return; }
     try{
       const res = await api('/data/compromiso', { method:'POST', body:{
-        declaracion,
+        personal, familiar, laboral, espiritual,
         fecha: document.getElementById('f-fecha').value || todayISO(),
         publicoCon: document.getElementById('f-publico-con').value,
         publicoMensaje: document.getElementById('f-publico-msg').value
       }});
       STATE.userData.compromisos = res.compromisos;
+      STATE.err = '';
       STATE.ok='Compromiso guardado.';
     }catch(e){ STATE.err = e.message; }
     render();
