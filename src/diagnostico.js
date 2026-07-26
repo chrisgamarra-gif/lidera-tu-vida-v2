@@ -155,11 +155,192 @@ const REFLEXION_PERSONAL_PREGUNTAS = [
   { id: 11, texto: '¿Qué es lo que todavía no sabes de ti mismo?' }
 ];
 
+// Las 12 leyes restantes de las 15 Leyes del Crecimiento. Cada una tiene
+// preguntas de reflexión de redacción propia (inspiradas en los conceptos
+// generales de cada ley, no citas textuales de ningún libro). Cada pregunta
+// admite varias respuestas a lo largo del tiempo.
+const LEYES_EXTRA = {
+  espejo: {
+    nombre: 'Ley del Espejo',
+    frase: 'Debes verte con valor para darte valor a ti mismo.',
+    preguntas: [
+      { id: 1, texto: '¿Qué valor te das a ti mismo en el trabajo, la familia y otras áreas de tu vida?' },
+      { id: 2, texto: '¿En qué área te gustaría aumentar tu autoestima?' },
+      { id: 3, texto: '¿Qué te dices a ti mismo que nunca permitirías que otra persona te dijera?' },
+      { id: 4, texto: '¿Con quién o con qué te comparas, y qué puedes hacer al respecto?' },
+      { id: 5, texto: '¿Qué creencia limitante te gustaría cambiar y cómo te limita hoy?' },
+      { id: 6, texto: '¿Qué pequeña victoria puedes celebrar hoy en esta área?' }
+    ]
+  },
+  persistencia: {
+    nombre: 'Ley de la Persistencia',
+    frase: 'La motivación te pone en marcha; la disciplina te mantiene creciendo.',
+    preguntas: [
+      { id: 1, texto: '¿Qué necesitas mejorar para ser más constante?' },
+      { id: 2, texto: '¿Qué pasos vas a tomar para mejorar esto?' },
+      { id: 3, texto: '¿Cuál es tu razón específica para querer mejorar?' },
+      { id: 4, texto: '¿Qué estás aprendiendo sobre ti mismo en este proceso?' },
+      { id: 5, texto: '¿Qué haces diariamente que agrega valor a tu crecimiento?' },
+      { id: 6, texto: '¿Qué deberías dejar de hacer porque no te agrega valor?' }
+    ]
+  },
+  entorno: {
+    nombre: 'Ley del Entorno',
+    frase: 'El crecimiento prospera en un entorno propicio.',
+    preguntas: [
+      { id: 1, texto: '¿Cuál es, en tu opinión, la relación entre cambio y crecimiento?' },
+      { id: 2, texto: '¿Qué tienes actualmente en tu entorno que sea tóxico?' },
+      { id: 3, texto: '¿Cómo puedes cambiar o controlar ese ambiente?' },
+      { id: 4, texto: '¿Qué te están aportando las personas con las que más pasas tiempo?' },
+      { id: 5, texto: '¿Qué te están quitando esas mismas personas?' },
+      { id: 6, texto: '¿Quién en tu círculo te hace responsable de tus compromisos?' },
+      { id: 7, texto: '¿En qué estás tomando acción ahora que beneficiará tu crecimiento futuro?' }
+    ]
+  },
+  diseno: {
+    nombre: 'Ley del Diseño',
+    frase: 'Para maximizar el crecimiento, desarrolla estrategias.',
+    preguntas: [
+      { id: 1, texto: '¿Qué has hecho para diseñar intencionalmente tu vida, no solo tu carrera?' },
+      { id: 2, texto: '¿Qué puedes hacer para simplificar tu vida ahora mismo?' },
+      { id: 3, texto: '¿Qué sistemas tienes hoy que te sirven bien?' },
+      { id: 4, texto: '¿Qué sistemas necesitas cambiar?' },
+      { id: 5, texto: '¿Cuál es el resultado que buscas y cómo sabrás que lo lograste?' },
+      { id: 6, texto: '¿Qué área de tu vida necesita más planificación estratégica (carrera, fe, familia, salud, etc.)?' }
+    ]
+  },
+  dolor: {
+    nombre: 'Ley del Dolor',
+    frase: 'El buen manejo de las malas experiencias conduce a un gran crecimiento.',
+    preguntas: [
+      { id: 1, texto: '¿Qué experiencia dolorosa recuerdas de la que aprendiste una lección valiosa?' },
+      { id: 2, texto: '¿Cómo convertiste ese dolor en algo positivo?' },
+      { id: 3, texto: '¿Qué elecciones tuyas han funcionado bien desde el principio, y por qué?' },
+      { id: 4, texto: '¿Te consideras alguien que evita el dolor, lo soporta, o lo procesa para aprender de él?' },
+      { id: 5, texto: '¿Qué medidas de acción has tomado frente a una dificultad reciente?' }
+    ]
+  },
+  escalera: {
+    nombre: 'Ley de la Escalera',
+    frase: 'El crecimiento del carácter determina la altura de tu crecimiento personal.',
+    preguntas: [
+      { id: 1, texto: '¿Qué significa para ti "pensar como una persona exitosa"?' },
+      { id: 2, texto: 'Del 1 al 10, ¿en qué peldaño sientes que estás hoy?' },
+      { id: 3, texto: '¿Qué puedes hacer esta semana para subir un peldaño?' },
+      { id: 4, texto: 'Cuando cometes un error, ¿cuál es tu primera reacción?' },
+      { id: 5, texto: '¿Qué tan fiel eres a lo que realmente te importa?' },
+      { id: 6, texto: '¿Qué pasos estás tomando para desarrollar tu carácter?' }
+    ]
+  },
+  banda_elastica: {
+    nombre: 'Ley de la Banda Elástica',
+    frase: 'El crecimiento se detiene cuando pierdes la tensión entre dónde estás y dónde podrías estar.',
+    preguntas: [
+      { id: 1, texto: '¿Dónde has sido "estirado" en tu vida, y qué aprendiste de eso?' },
+      { id: 2, texto: '¿Dónde necesitas estirarte para crecer al siguiente nivel?' },
+      { id: 3, texto: '¿Qué estás dispuesto a arriesgar para lograrlo?' },
+      { id: 4, texto: '¿En qué área te has "acomodado" y dejaste de estirarte?' },
+      { id: 5, texto: '¿Cuál es tu meta de estiramiento? (que sea específica, medible, alcanzable, realista y con fecha)' }
+    ]
+  },
+  compensacion: {
+    nombre: 'Ley de la Compensación',
+    frase: 'Tienes que ceder algo para crecer.',
+    preguntas: [
+      { id: 1, texto: '¿Qué estás dispuesto a ceder para poder crecer?' },
+      { id: 2, texto: '¿Qué cambio hiciste en el pasado que impulsó tu crecimiento?' },
+      { id: 3, texto: '¿Vale la pena el precio del cambio que estás considerando ahora?' },
+      { id: 4, texto: '¿Qué cosas no estás dispuesto a comprometer bajo ninguna circunstancia?' },
+      { id: 5, texto: '¿Cuál es tu próximo nivel, y qué te costará llegar ahí?' }
+    ]
+  },
+  curiosidad: {
+    nombre: 'Ley de la Curiosidad',
+    frase: 'El crecimiento se estimula al preguntar "¿por qué?"',
+    preguntas: [
+      { id: 1, texto: '¿De qué tienes curiosidad hoy y quieres aprender más al respecto?' },
+      { id: 2, texto: '¿Qué te ha llevado a ser menos curioso últimamente?' },
+      { id: 3, texto: '¿Qué aprendiste hoy?' },
+      { id: 4, texto: 'Escribe al menos 5 preguntas "por qué" que te hagas sobre tu vida o tu trabajo.' },
+      { id: 5, texto: '¿Sigues buscando la respuesta correcta en algo, o ya te rendiste?' }
+    ]
+  },
+  modelo: {
+    nombre: 'Ley del Modelo',
+    frase: 'Es difícil superarte cuando no tienes a quién seguir sino a ti mismo.',
+    preguntas: [
+      { id: 1, texto: '¿A quién sigues como modelo o ejemplo, y por qué?' },
+      { id: 2, texto: '¿Cómo te ha ayudado esa persona a crecer?' },
+      { id: 3, texto: '¿Quién conoces que tenga experiencia, sabiduría y disponibilidad para ser tu mentor?' },
+      { id: 4, texto: '¿Quién es tu entrenador de confianza (tu "Phil Jackson")?' },
+      { id: 5, texto: '¿Qué preguntas reflexivas llevarías a tu próxima sesión con un mentor?' }
+    ]
+  },
+  expansion: {
+    nombre: 'Ley de la Expansión',
+    frase: 'El crecimiento siempre aumenta tu capacidad.',
+    preguntas: [
+      { id: 1, texto: '¿Qué significa para ti "encontrar tus límites y moverlos"?' },
+      { id: 2, texto: '¿Qué cambia cuando pasas de pensar "puedo" a pensar "cómo puedo"?' },
+      { id: 3, texto: '¿Qué te da el mayor retorno de tu tiempo invertido?' },
+      { id: 4, texto: 'Si supieras que no puedes fallar, ¿qué intentarías?' },
+      { id: 5, texto: '¿Qué frontera necesitas derribar para hacer una diferencia en tu vida?' }
+    ]
+  },
+  contribucion: {
+    nombre: 'Ley de la Contribución',
+    frase: 'Desarrollarte a ti mismo te capacita para desarrollar a otros.',
+    preguntas: [
+      { id: 1, texto: '¿Cómo estás ayudando a otros a crecer esta semana?' },
+      { id: 2, texto: '¿Qué está "fluyendo" de ti hacia los demás?' },
+      { id: 3, texto: '¿Quién te anima, te reta o te acompaña, y cómo puedes ser eso para alguien más?' },
+      { id: 4, texto: '¿Tus esfuerzos se enfocan más en sentirte bien tú, o en el éxito de otra persona?' },
+      { id: 5, texto: '¿Te consideras más un "dador" o un "recibidor"?' }
+    ]
+  }
+};
+
+// Orden y metadata de las 15 leyes para armar las subpestañas del
+// diagnóstico. "tipo" indica qué herramienta usa cada una:
+// - 'brechas': la herramienta de brechas con causas/efectos (Intencionalidad)
+// - 'conciencia': el FODA + preguntas cortas (Conciencia)
+// - 'reflexion': el perfil accidental/intencional + preguntas cortas (Reflexión)
+// - 'preguntas': banco genérico de preguntas con varias respuestas (las otras 12)
+const LEY_ORDEN = [
+  { id: 'intencionalidad', nombre: 'Intencionalidad', tipo: 'brechas' },
+  { id: 'conciencia', nombre: 'Conciencia', tipo: 'conciencia' },
+  { id: 'espejo', nombre: 'Espejo', tipo: 'preguntas' },
+  { id: 'reflexion', nombre: 'Reflexión', tipo: 'reflexion' },
+  { id: 'persistencia', nombre: 'Persistencia', tipo: 'preguntas' },
+  { id: 'entorno', nombre: 'Entorno', tipo: 'preguntas' },
+  { id: 'diseno', nombre: 'Diseño', tipo: 'preguntas' },
+  { id: 'dolor', nombre: 'Dolor', tipo: 'preguntas' },
+  { id: 'escalera', nombre: 'Escalera', tipo: 'preguntas' },
+  { id: 'banda_elastica', nombre: 'Banda Elástica', tipo: 'preguntas' },
+  { id: 'compensacion', nombre: 'Compensación', tipo: 'preguntas' },
+  { id: 'curiosidad', nombre: 'Curiosidad', tipo: 'preguntas' },
+  { id: 'modelo', nombre: 'Modelo', tipo: 'preguntas' },
+  { id: 'expansion', nombre: 'Expansión', tipo: 'preguntas' },
+  { id: 'contribucion', nombre: 'Contribución', tipo: 'preguntas' }
+];
+
+// Lista plana de TODAS las preguntas de las leyes que usan el banco genérico
+// (conciencia, reflexion, y las 12 leyes extra) — se usa para calcular el
+// avance por faceta (Personal/Familiar/Laboral) en growth.js.
+const TODAS_LAS_PREGUNTAS = [
+  ...CONCIENCIA_PREGUNTAS.map(p => ({ leyId: 'conciencia', preguntaId: p.id })),
+  ...REFLEXION_PERSONAL_PREGUNTAS.map(p => ({ leyId: 'reflexion', preguntaId: p.id })),
+  ...Object.entries(LEYES_EXTRA).flatMap(([leyId, ley]) => ley.preguntas.map(p => ({ leyId, preguntaId: p.id })))
+];
+
 module.exports = {
   BRECHAS,
   PERFIL_PREGUNTAS,
   interpretarPuntaje,
   calcularPuntaje,
   CONCIENCIA_PREGUNTAS,
-  REFLEXION_PERSONAL_PREGUNTAS
+  REFLEXION_PERSONAL_PREGUNTAS,
+  LEYES_EXTRA,
+  LEY_ORDEN,
+  TODAS_LAS_PREGUNTAS
 };

@@ -2,7 +2,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../auth');
-const { allSemaforos, stepsCompleted } = require('../growth');
+const { allSemaforos, stepsCompleted, calcularAvanceFacetas } = require('../growth');
 const { buildGrowthPlanPdf } = require('../pdf');
 const { checkSemaforoTransitions } = require('../semaforoWatcher');
 const {
@@ -11,7 +11,9 @@ const {
   interpretarPuntaje,
   calcularPuntaje,
   CONCIENCIA_PREGUNTAS,
-  REFLEXION_PERSONAL_PREGUNTAS
+  REFLEXION_PERSONAL_PREGUNTAS,
+  LEYES_EXTRA,
+  LEY_ORDEN
 } = require('../diagnostico');
 
 const router = express.Router();
@@ -31,7 +33,12 @@ function notifyInBackground(userId) {
 /* -------- lectura completa -------- */
 router.get('/', (req, res) => {
   const data = db.getUserData(currentUserId(req));
-  res.json({ data, semaforos: allSemaforos(data), pasosCompletados: stepsCompleted(data) });
+  res.json({
+    data,
+    semaforos: allSemaforos(data),
+    pasosCompletados: stepsCompleted(data),
+    avanceFacetas: calcularAvanceFacetas(data)
+  });
 });
 
 /* -------- exportar el plan como PDF -------- */
@@ -54,7 +61,9 @@ router.get('/diagnostico/catalogo', (req, res) => {
     brechas: BRECHAS,
     preguntas: PERFIL_PREGUNTAS,
     conciencia: CONCIENCIA_PREGUNTAS,
-    reflexionPersonal: REFLEXION_PERSONAL_PREGUNTAS
+    reflexionPersonal: REFLEXION_PERSONAL_PREGUNTAS,
+    leyesExtra: LEYES_EXTRA,
+    leyOrden: LEY_ORDEN
   });
 });
 
@@ -95,26 +104,39 @@ router.delete('/brecha/:index', (req, res) => {
   res.json({ ok: true, brechas });
 });
 
-/* -------- Ley de la Conciencia y Ley de la Reflexión: preguntas con varias respuestas -------- */
-function crearRutasAutoconocimiento(rutaBase, columna, preguntasValidas) {
-  router.post(`/${rutaBase}/:preguntaId`, (req, res) => {
-    const preguntaId = Number(req.params.preguntaId);
-    if (!preguntasValidas.some(p => p.id === preguntaId)) {
-      return res.status(400).json({ error: 'Pregunta no válida.' });
-    }
-    const { texto } = req.body || {};
-    if (!texto || !String(texto).trim()) return res.status(400).json({ error: 'Escribe tu respuesta.' });
-    const datos = db.addRespuesta(currentUserId(req), columna, preguntaId, String(texto).trim().slice(0, 1000));
-    res.status(201).json({ ok: true, [columna === 'reflexion_personal' ? 'reflexionPersonal' : columna]: datos });
-  });
-  router.delete(`/${rutaBase}/:preguntaId/:index`, (req, res) => {
-    const preguntaId = Number(req.params.preguntaId);
-    const datos = db.removeRespuesta(currentUserId(req), columna, preguntaId, Number(req.params.index));
-    res.json({ ok: true, [columna === 'reflexion_personal' ? 'reflexionPersonal' : columna]: datos });
-  });
+/* -------- las 15 leyes: preguntas de reflexión con varias respuestas cada una --------
+ * 'intencionalidad' usa la herramienta de brechas de arriba; las otras 14 leyes
+ * (incluidas conciencia y reflexion, que además tienen su propia herramienta
+ * especial: FODA y el perfil accidental/intencional) usan este mismo banco
+ * genérico de preguntas con respuesta libre. */
+function obtenerPreguntasDeLey(leyId) {
+  if (leyId === 'conciencia') return CONCIENCIA_PREGUNTAS;
+  if (leyId === 'reflexion') return REFLEXION_PERSONAL_PREGUNTAS;
+  if (LEYES_EXTRA[leyId]) return LEYES_EXTRA[leyId].preguntas;
+  return null;
 }
-crearRutasAutoconocimiento('conciencia', 'conciencia', CONCIENCIA_PREGUNTAS);
-crearRutasAutoconocimiento('reflexion-personal', 'reflexion_personal', REFLEXION_PERSONAL_PREGUNTAS);
+
+router.post('/ley/:leyId/:preguntaId', (req, res) => {
+  const { leyId } = req.params;
+  const preguntaId = Number(req.params.preguntaId);
+  const preguntas = obtenerPreguntasDeLey(leyId);
+  if (!preguntas) return res.status(400).json({ error: 'Ley no válida.' });
+  if (!preguntas.some(p => p.id === preguntaId)) return res.status(400).json({ error: 'Pregunta no válida.' });
+  const { personal, familiar, laboral } = req.body || {};
+  const limpiar = t => String(t || '').trim().slice(0, 500);
+  const facetas = { personal: limpiar(personal), familiar: limpiar(familiar), laboral: limpiar(laboral) };
+  if (!facetas.personal && !facetas.familiar && !facetas.laboral) {
+    return res.status(400).json({ error: 'Escribe al menos una respuesta (Personal, Familiar o Laboral).' });
+  }
+  const leyes = db.addRespuestaLey(currentUserId(req), leyId, preguntaId, facetas);
+  res.status(201).json({ ok: true, leyes });
+});
+router.delete('/ley/:leyId/:preguntaId/:index', (req, res) => {
+  const { leyId } = req.params;
+  const preguntaId = Number(req.params.preguntaId);
+  const leyes = db.removeRespuestaLey(currentUserId(req), leyId, preguntaId, Number(req.params.index));
+  res.json({ ok: true, leyes });
+});
 
 /* -------- perfil de crecimiento: accidental <-> intencional -------- */
 router.post('/perfil-crecimiento', (req, res) => {
@@ -231,11 +253,30 @@ router.delete('/planificador/:index', (req, res) => {
   res.json({ ok: true, planificador: list });
 });
 
-/* -------- bitácora de reflexión (paso 5) -------- */
+/* -------- bitácora de seguimiento mensual (paso 5) -------- */
+function semaforoCalificacion(n) {
+  if (n >= 8) return 'verde';
+  if (n >= 5) return 'amarillo';
+  return 'rojo';
+}
 router.post('/bitacora', (req, res) => {
-  const { fecha, texto } = req.body || {};
-  if (!texto || !String(texto).trim()) return res.status(400).json({ error: 'Escribe tu reflexión.' });
-  const item = { fecha: String(fecha || new Date().toISOString().slice(0, 10)), texto: String(texto).slice(0, 3000) };
+  const { mesSemana, leyes: leyesTrabajadas, acciones, logros, dificultades, enfoqueProximo, calificacion } = req.body || {};
+  if (!mesSemana || !String(mesSemana).trim()) return res.status(400).json({ error: 'Indica el mes o semana.' });
+  const calificacionNum = Math.max(1, Math.min(10, Number(calificacion) || 1));
+  const leyesLimpias = Array.isArray(leyesTrabajadas)
+    ? leyesTrabajadas.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 15)
+    : [];
+  const item = {
+    mesSemana: String(mesSemana).slice(0, 100),
+    leyes: leyesLimpias,
+    acciones: String(acciones || '').slice(0, 2000),
+    logros: String(logros || '').slice(0, 2000),
+    dificultades: String(dificultades || '').slice(0, 2000),
+    enfoqueProximo: String(enfoqueProximo || '').slice(0, 1000),
+    calificacion: calificacionNum,
+    semaforo: semaforoCalificacion(calificacionNum),
+    fecha: new Date().toISOString().slice(0, 10)
+  };
   const list = db.pushToList(currentUserId(req), 'bitacora', item);
   res.status(201).json({ ok: true, bitacora: list });
 });

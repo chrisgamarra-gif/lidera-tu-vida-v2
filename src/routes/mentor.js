@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { requireAuth, requireMentor } = require('../auth');
-const { allSemaforos, stepsCompleted, fodaResumen } = require('../growth');
+const { allSemaforos, stepsCompleted, fodaResumen, calcularAvanceFacetas } = require('../growth');
 const { buildGrowthPlanPdf, buildConsolidatedPdf } = require('../pdf');
 
 const router = express.Router();
@@ -69,7 +69,8 @@ router.get('/mentees', (req, res) => {
       nombre: m.nombre,
       semaforos: allSemaforos(data),
       pasosCompletados: stepsCompleted(data),
-      foda: fodaResumen(data)
+      foda: fodaResumen(data),
+      avanceFacetas: calcularAvanceFacetas(data)
     };
   });
   res.json({ mentees });
@@ -102,7 +103,8 @@ router.get('/mentees/:username', (req, res) => {
     data,
     semaforos: allSemaforos(data),
     pasosCompletados: stepsCompleted(data),
-    foda: fodaResumen(data)
+    foda: fodaResumen(data),
+    avanceFacetas: calcularAvanceFacetas(data)
   });
 });
 

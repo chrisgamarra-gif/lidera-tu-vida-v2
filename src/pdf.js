@@ -5,8 +5,8 @@
  */
 const path = require('node:path');
 const PDFDocument = require('pdfkit');
-const { allSemaforos, stepsCompleted } = require('./growth');
-const { CONCIENCIA_PREGUNTAS, REFLEXION_PERSONAL_PREGUNTAS } = require('./diagnostico');
+const { allSemaforos, stepsCompleted, calcularAvanceFacetas } = require('./growth');
+const { CONCIENCIA_PREGUNTAS, REFLEXION_PERSONAL_PREGUNTAS, LEYES_EXTRA } = require('./diagnostico');
 
 const LOGO_PATH = path.join(__dirname, 'assets', 'logo-claro.png');
 
@@ -178,7 +178,30 @@ function buildGrowthPlanPdf(data, usuario) {
     });
   }
 
-  // ---- Ley de la Conciencia y Ley de la Reflexion ----
+  // ---- Resumen general y por faceta (Personal / Familiar / Laboral) ----
+  sectionTitle(doc, 'Resumen de tus respuestas por faceta');
+  const avanceFacetas = calcularAvanceFacetas(data);
+  const FACETA_LABEL = { personal: 'Personal', familiar: 'Familiar', laboral: 'Laboral' };
+  const totalPreguntas = avanceFacetas.personal.total;
+  const totalContestadasGeneral = Object.values(avanceFacetas).reduce((s, f) => s + f.contestadas, 0);
+  paragraph(doc, `De ${totalPreguntas} preguntas de las 15 leyes, tienes respuestas registradas repartidas asi:`, {
+    size: 9.5
+  });
+  Object.entries(avanceFacetas).forEach(([faceta, info]) => {
+    const y = doc.y;
+    const margenIzq = doc.page.margins.left;
+    doc.circle(margenIzq + 6, y + 5, 4.5).fill(SEMA_COLORS[info.semaforo]);
+    doc
+      .fillColor(INK)
+      .font('Helvetica-Bold')
+      .fontSize(9.5)
+      .text(`${FACETA_LABEL[faceta]}: ${info.contestadas}/${info.total} preguntas`, margenIzq + 16, y, {
+        width: doc.page.width - margenIzq * 2 - 16
+      });
+  });
+  doc.moveDown(0.4);
+
+  // ---- Ley de la Conciencia y Ley de la Reflexion (y las 12 leyes restantes) ----
   function seccionAutoconocimiento(titulo, preguntas, datos) {
     sectionTitle(doc, titulo);
     const conRespuestas = preguntas.filter(p => Array.isArray(datos[p.id]) && datos[p.id].length);
@@ -189,13 +212,26 @@ function buildGrowthPlanPdf(data, usuario) {
     conRespuestas.forEach(p => {
       doc.font('Helvetica-Bold').fontSize(9.5).fillColor(INK).text(p.texto);
       datos[p.id].forEach(r => {
-        doc.font('Helvetica').fontSize(9).fillColor(INK_SOFT).text(`- ${r.texto}`);
+        ['personal', 'familiar', 'laboral'].forEach(faceta => {
+          if (r[faceta] && String(r[faceta]).trim()) {
+            doc
+              .font('Helvetica')
+              .fontSize(9)
+              .fillColor(INK_SOFT)
+              .text(`- (${FACETA_LABEL[faceta]}) ${r[faceta]}`);
+          }
+        });
       });
       doc.moveDown(0.2);
     });
   }
-  seccionAutoconocimiento('Ley de la Conciencia', CONCIENCIA_PREGUNTAS, data.conciencia || {});
-  seccionAutoconocimiento('Ley de la Reflexion', REFLEXION_PERSONAL_PREGUNTAS, data.reflexionPersonal || {});
+  seccionAutoconocimiento('Ley de la Conciencia', CONCIENCIA_PREGUNTAS, (data.leyes && data.leyes.conciencia) || {});
+  seccionAutoconocimiento('Ley de la Reflexion', REFLEXION_PERSONAL_PREGUNTAS, (data.leyes && data.leyes.reflexion) || {});
+  Object.entries(LEYES_EXTRA).forEach(([leyId, ley]) => {
+    const datosLey = (data.leyes && data.leyes[leyId]) || {};
+    const tieneRespuestas = Object.values(datosLey).some(arr => Array.isArray(arr) && arr.length);
+    if (tieneRespuestas) seccionAutoconocimiento(ley.nombre, ley.preguntas, datosLey);
+  });
 
   // ---- FODA ----
   sectionTitle(doc, 'Diagnostico FODA');
@@ -258,8 +294,8 @@ function buildGrowthPlanPdf(data, usuario) {
       });
   }
 
-  // ---- Bitácora ----
-  sectionTitle(doc, 'Bitacora de reflexion');
+  // ---- Bitácora de seguimiento mensual ----
+  sectionTitle(doc, 'Bitacora de seguimiento mensual');
   if (!data.bitacora.length) {
     paragraph(doc, 'Sin entradas registradas todavia.', { color: INK_SOFT });
   } else {
@@ -267,9 +303,19 @@ function buildGrowthPlanPdf(data, usuario) {
       .slice()
       .reverse()
       .forEach(b => {
-        if (doc.y > doc.page.height - doc.page.margins.bottom - 50) doc.addPage();
-        doc.font('Helvetica-Bold').fontSize(9).fillColor(INK_SOFT).text(fmtDate(b.fecha));
-        doc.font('Helvetica').fontSize(10).fillColor(INK).text(b.texto);
+        if (doc.y > doc.page.height - doc.page.margins.bottom - 90) doc.addPage();
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(10)
+          .fillColor(NAVY)
+          .text(`${b.mesSemana || '-'}  ·  Calificacion ${b.calificacion || '-'}/10 (${b.semaforo || ''})`);
+        if (b.leyes && b.leyes.length) {
+          paragraph(doc, `Leyes trabajadas: ${b.leyes.join(', ')}`, { size: 9, color: INK_SOFT });
+        }
+        if (b.acciones) paragraph(doc, `Acciones: ${b.acciones}`, { size: 9.5, color: INK_SOFT });
+        if (b.logros) paragraph(doc, `Logros/aprendizajes: ${b.logros}`, { size: 9.5, color: INK_SOFT });
+        if (b.dificultades) paragraph(doc, `Dificultades: ${b.dificultades}`, { size: 9.5, color: INK_SOFT });
+        if (b.enfoqueProximo) paragraph(doc, `Proximo enfoque: ${b.enfoqueProximo}`, { size: 9.5, color: INK_SOFT });
         doc.moveDown(0.4);
       });
   }

@@ -157,17 +157,15 @@ Todas las rutas bajo `/api/data` y `/api/mentor` requieren el encabezado
 | DELETE | `/api/data/brecha/:index`             | Elimina una entrada del historial de brechas    |
 | POST   | `/api/data/perfil-crecimiento`        | Guarda una autoevaluación accidental vs. intencional |
 | DELETE | `/api/data/perfil-crecimiento/:index` | Elimina una entrada del historial del perfil    |
-| POST   | `/api/data/conciencia/:preguntaId`    | Agrega una respuesta a una pregunta de la Ley de la Conciencia |
-| DELETE | `/api/data/conciencia/:preguntaId/:index` | Elimina una respuesta de esa pregunta       |
-| POST   | `/api/data/reflexion-personal/:preguntaId` | Agrega una respuesta a una pregunta de la Ley de la Reflexión |
-| DELETE | `/api/data/reflexion-personal/:preguntaId/:index` | Elimina una respuesta de esa pregunta |
+| POST   | `/api/data/ley/:leyId/:preguntaId`    | Agrega una respuesta (Personal/Familiar/Laboral) a una pregunta de cualquiera de las 13 leyes con banco genérico (`conciencia`, `reflexion`, o cualquier id de `LEYES_EXTRA`) |
+| DELETE | `/api/data/ley/:leyId/:preguntaId/:index` | Elimina una respuesta de esa pregunta       |
 | POST   | `/api/data/foda/:categoria`          | Agrega un ítem (fortaleza/debilidad/oportunidad/amenaza) |
 | DELETE | `/api/data/foda/:categoria/:index`   | Elimina un ítem del FODA                        |
 | PUT    | `/api/data/foda/:categoria/:index/estado` | Cambia el estado de un ítem (activa/en_progreso/superada) |
 | PUT    | `/api/data/areas/:area`              | Guarda meta, notas y métricas de un área        |
 | POST   | `/api/data/planificador`             | Agrega una actividad diaria                     |
 | DELETE | `/api/data/planificador/:index`      | Elimina una actividad                           |
-| POST   | `/api/data/bitacora`                 | Agrega una entrada de reflexión                 |
+| POST   | `/api/data/bitacora`                 | Agrega una entrada de seguimiento mensual (mes/semana, leyes trabajadas, acciones, logros, dificultades, próximo enfoque, calificación) |
 | DELETE | `/api/data/bitacora/:index`          | Elimina una entrada                             |
 | POST   | `/api/data/compartir`                | Agrega un registro de acompañamiento            |
 | DELETE | `/api/data/compartir/:index`         | Elimina un registro                             |
@@ -198,6 +196,61 @@ toda persona nueva debe darse de alta desde el panel de mentor, con el botón
   vez** en pantalla — el mentor debe copiarla y compartirla directamente con
   la persona (no se envía por correo automáticamente).
 - La contraseña se guarda con el mismo hash bcrypt que cualquier otra cuenta.
+
+## Diagnóstico de crecimiento — las 15 Leyes en subpestañas
+
+La pestaña "Diagnóstico" tiene una subpestaña por cada una de las 15 Leyes
+del Crecimiento de John C. Maxwell, todas con redacción propia (no se
+reproduce texto de ningún libro):
+
+1. **Intencionalidad**: las 8 brechas de crecimiento, cada una con sus
+   causas y efectos (ver sección de arriba).
+2. **Conciencia**: el diagnóstico FODA + 4 preguntas cortas.
+3. **Espejo**, 5. **Persistencia**, 6. **Entorno**, 7. **Diseño**, 8.
+   **Dolor**, 9. **Escalera**, 10. **Banda Elástica**, 11. **Compensación**,
+   12. **Curiosidad**, 13. **Modelo**, 14. **Expansión**, 15.
+   **Contribución**: cada una con un banco de 5-7 preguntas de reflexión
+   propias.
+4. **Reflexión**: el perfil accidental vs. intencional (10 preguntas
+   pareadas, puntaje 0-10) + 11 preguntas cortas de autoconocimiento.
+
+### Cada pregunta tiene 3 facetas: Personal, Familiar, Laboral
+
+En las 13 leyes que usan el banco genérico de preguntas (todas menos
+Intencionalidad y el FODA de Conciencia), cada pregunta se responde en hasta
+3 facetas — no hace falta llenar las 3, con una alcanza para guardar. Cada
+respuesta guardada trae sus 3 campos (`personal`, `familiar`, `laboral`) más
+la fecha.
+
+**Nuevo semáforo de facetas** (panel "Avance en tus respuestas de las 15
+leyes" en el Panel principal): compara cuántas de las 81 preguntas totales
+tienen ya una respuesta registrada en cada faceta, con el mismo criterio de
+semáforo que las áreas de vida (verde ≥66%, amarillo ≥33%, rojo por debajo).
+El cálculo (`calcularAvanceFacetas` en `src/growth.js`) siempre corre en el
+servidor; el mentor lo ve también por cada participante.
+
+**En el PDF** aparece una sección "Resumen de tus respuestas por faceta" con
+el total general y el desglose Personal/Familiar/Laboral, antes del detalle
+pregunta por pregunta de cada ley (donde cada respuesta ahora se etiqueta
+con a qué faceta pertenece).
+
+Todo el contenido de las 15 leyes vive en `src/diagnostico.js`
+(`LEYES_EXTRA`, `LEY_ORDEN` y `TODAS_LAS_PREGUNTAS`). Las respuestas se
+guardan en una sola columna `leyes` (JSON:
+`{ [leyId]: { [preguntaId]: [{personal, familiar, laboral, fecha}, ...] } }`),
+vía los endpoints `POST/DELETE /api/data/ley/:leyId/:preguntaId`.
+
+## Bitácora de seguimiento mensual
+
+La Bitácora ya no es un diario simple: ahora es un registro de seguimiento
+por mes o semana, con el botón **"+ Agregar entrada"**. Cada entrada tiene:
+
+- Mes/semana (texto libre).
+- Qué ley(es) del 1 al 15 se trabajaron (chips, clic para marcar varias).
+- Acciones concretas realizadas, logros/aprendizajes, dificultades, y en
+  qué te vas a enfocar después.
+- Auto-calificación (1-10) con un control deslizante, con su propio
+  semáforo: 🟢 8-10, 🟡 5-7, 🔴 1-4 (el semáforo se calcula en el servidor).
 
 ## Diagnóstico de crecimiento (brechas + perfil de intencionalidad)
 

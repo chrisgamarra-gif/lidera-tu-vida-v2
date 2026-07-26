@@ -5,8 +5,10 @@
  * en el servidor para que la vista de mentor sea siempre confiable
  * (nunca confiamos en un cálculo hecho en el navegador de otra persona).
  */
+const { TODAS_LAS_PREGUNTAS } = require('./diagnostico');
 
 const AREA_KEYS = ['laboral', 'personal', 'familiar', 'espiritual'];
+const FACETAS = ['personal', 'familiar', 'laboral'];
 
 function computeAreaScore(area, planificador, areaKey) {
   let score = 0;
@@ -83,12 +85,37 @@ function fodaResumen(data) {
   return resumen;
 }
 
+/**
+ * Avance por faceta (Personal / Familiar / Laboral) a través de TODAS las
+ * preguntas de las 15 leyes que usan el banco genérico. Una pregunta cuenta
+ * como "contestada" en una faceta si al menos una de sus respuestas guardadas
+ * tiene esa faceta con texto. El semáforo usa los mismos umbrales que el de
+ * las áreas de vida, para que se lea igual en toda la app.
+ */
+function calcularAvanceFacetas(data) {
+  const leyes = data.leyes || {};
+  const total = TODAS_LAS_PREGUNTAS.length;
+  const resultado = {};
+  for (const faceta of FACETAS) {
+    let contestadas = 0;
+    for (const { leyId, preguntaId } of TODAS_LAS_PREGUNTAS) {
+      const respuestas = (leyes[leyId] && leyes[leyId][preguntaId]) || [];
+      if (respuestas.some(r => r && r[faceta] && String(r[faceta]).trim())) contestadas++;
+    }
+    const pct = total > 0 ? contestadas / total : 0;
+    resultado[faceta] = { contestadas, total, semaforo: semaforoFromScore(pct) };
+  }
+  return resultado;
+}
+
 module.exports = {
   AREA_KEYS,
+  FACETAS,
   computeAreaScore,
   semaforoFromScore,
   areaSemaforo,
   allSemaforos,
   stepsCompleted,
-  fodaResumen
+  fodaResumen,
+  calcularAvanceFacetas
 };
